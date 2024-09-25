@@ -1,5 +1,8 @@
 import { Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useState } from "react";
+import { Stack, useRouter } from "expo-router";
+
 
 export default function Index() {
   return (
@@ -11,7 +14,7 @@ export default function Index() {
         backgroundColor: "orange",
       }}
     >
-      <Text>Nexo is here</Text>
+      <Text>Nexo</Text>
     </SafeAreaView>
   );
 }
