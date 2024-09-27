@@ -4,18 +4,18 @@ import { Tabs } from 'expo-router'
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 
-export default function Tablayout() {
+export default function Tablayout(color='white') {
   return (
     <Tabs screenOptions={{headerShown: false}}>
       <Tabs.Screen name='home'
       options={{
         tabBarLabel: 'Home',
-        tabBarIcon:({color})=><FontAwesome name="home" size={24} color={color} />
+        tabBarIcon:({color})=><FontAwesome name="home" size={24} color='black' />
       }}
       />
       <Tabs.Screen name='Recent'options={{
         tabBarLabel: 'Recent',
-        tabBarIcon:({color})=><MaterialIcons name="history" size={24} color={color} />
+        tabBarIcon:({color})=><MaterialIcons name="history" size={24} color='black' />
       }}/>
 
 
