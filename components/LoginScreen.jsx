@@ -1,105 +1,80 @@
-import { View, Text, Image, TouchableOpacityBase } from 'react-native'
-import React from 'react'
-import { Colors } from '@/constants/Colors'
-import { StyleSheet } from 'react-native'
-import { TouchableOpacity } from 'react-native'
-import { useWarmUpBrowser } from './../hooks/useWarmUpBrowser';
-import * as WebBrowser from 'expo-web-browser';
-import { useOAuth } from '@clerk/clerk-expo'
+import { View, Text, Image, TouchableOpacity } from 'react-native';
+import React from 'react';
+import { Colors } from '@/constants/Colors';
+import { StyleSheet } from 'react-native';
 
-WebBrowser.maybeCompleteAuthSession();
-export default function loginscreen() {
-    useWarmUpBrowser();
-
-    const { startOAuthFlow } = useOAuth({strategy: 'oauth_google'});
-const onPress = React.useCallback(async ()=> {
-    try{
-        const{ createdSessionId, signIn, signUp, setActive } =
-        await startOAuthFlow();
-
-      if (createdSessionId) {
-        SetActive({session: createdSessionId});
-      } else {
-        // Use signIn or SignUp for next steps as MFA
-      }
-    } catch (err) {
-        console.error('OAuth error', err);
-    } 
-}, []); 
- 
- 
-
-
-
+export default function LoginScreen() {
   return (
-    <View>
-        <View style={{
-            display:'flex',
-            alignItems: 'center',
-            marginTop: 200,
-            
-        }}>
-            
-
-       
-      <Image source={require('./../assets/images/Orange_copy 2.png')}
-      style={{
-        width:350,
-        height:200,
-        borderRadius:20,
+    <View style={styles.container}>
+      {/* Centered logo and text */}
+      <View style={styles.middleContent}>
+        <Image 
+          source={require('./../assets/images/Orange_copy 2.png')}
+          style={styles.logo}
+          resizeMode="contain"
+        />
         
-        
-        
-      }}
-      />
-        </View>
-      <View style={styles.subContainer}>
-        <Text style={{fontSize:17,
-            fontFamily:'outfit_bold',
-            textAlign:'center',
-            }}>
-            <Text style={{color:Colors.Primary, padding:50, fontSize:25,}}>Nexo</Text>, votre application de confiance pour des transferts d’argent et des paiements sans souci au Tchad.
-            
-            </Text>
-            <Text style={{
-                fontSize:20,
-                fontFamily:'outfit_bold',
-                textAlign:'center',
-                marginTop:15,
-                color:Colors.Primary
-            }}>
-            Déposez, transférez et gérez votre argent facilement avec Nexo.
-            </Text>
-            <TouchableOpacity style={styles.btn}
-            onPress={onPress}
-            >
-                <Text style={{
-                    textAlign:'center',
-                    color:'#fff',
-                    fontFamily: 'outfit_bold'
-                }}>Se Connecter</Text>
-
-            </TouchableOpacity>
-
+        {/* Text under the logo */}
+        <Text style={styles.subtitle}>
+          Déposez, transférez et gérez votre argent facilement.
+        </Text>
       </View>
-
+      
+      {/* Button at the bottom */}
+      <TouchableOpacity style={styles.btn}>
+        <Text style={styles.btnText}>Se Connecter</Text>
+      </TouchableOpacity>
     </View>
-  )
+  );
 }
+
 const styles = StyleSheet.create({
-    subContainer:{
-        backgroundColor:'#fff',
-        marginTop:-65,
-        borderTopWidth:1,
-        
-    },
-    btn:{
-        backgroundColor: Colors.Primary,
-        padding:19,
-        borderRadius:99,
-        marginTop: 15,
-
-
-    }
-
-})
+  // Main container with background color matching the image
+  container: {
+    flex: 1,
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: Colors.Primary, // Matching background color with the image
+  },
+  
+  // Centered content for logo and text
+  middleContent: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  
+  // Logo styling
+  logo: {
+    width: 250, // Increase the size of the logo
+    height: 250,
+  },
+  
+  // Subtitle text under the logo
+  subtitle: {
+    fontSize: 20,
+    color: '#fff',
+    fontFamily: 'outfit_bold',
+    textAlign: 'center',
+    marginTop:-30, // Space between logo and text
+    fontSize:18
+  },
+  
+  // Button style at the bottom
+  btn: {
+    backgroundColor: '#fff',
+    padding: 15,
+    borderRadius: 99,
+    marginBottom: 40, // Move the button closer to the bottom of the screen
+    width: '70%',
+    alignSelf: 'center',
+  },
+  
+  // Button text style with primary orange color
+  btnText: {
+    textAlign: 'center',
+    color: Colors.Primary,
+    fontFamily: 'outfit_bold',
+    fontSize: 15,
+  },
+});
