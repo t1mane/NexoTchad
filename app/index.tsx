@@ -1,9 +1,13 @@
-import { Text, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { useState } from "react";
-import { Redirect } from "expo-router";
-
+import { Stack } from "expo-router";
 
 export default function Index() {
-  return <Redirect href={'/home'}/>
+  return (
+    <Stack>
+      <Stack.Screen name="home" options={{ title: "Home" }} />
+      <Stack.Screen name="recent" options={{ title: "Recent Activity" }} />
+      <Stack.Screen name="login" options={{ title: "Login" }} />
+      <Stack.Screen name="sign_in" options={{ title: "Sign In" }} />
+      <Stack.Screen name="sign_up" options={{ title: "Sign Up" }} />
+    </Stack>
+  );
 }

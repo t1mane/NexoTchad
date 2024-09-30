@@ -1,10 +1,9 @@
-import { View, Text } from 'react-native'
-import React from 'react'
+import { Text, View } from "react-native";
 
-export default function home() {
+export default function HomeScreen() {
   return (
     <View>
-      <Text style={{fontSize:40, fontfamily:'outfit'}}> home </Text>
+      <Text>Welcome to the Home Screen!</Text>
     </View>
-  )
+  );
 }

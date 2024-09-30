@@ -2,6 +2,7 @@ import { View, Text, Image, TouchableOpacity } from 'react-native';
 import React from 'react';
 import { Colors } from '@/constants/Colors';
 import { StyleSheet } from 'react-native';
+import { Link } from 'expo-router'; // Import Link for navigation
 
 export default function LoginScreen() {
   return (
@@ -9,7 +10,7 @@ export default function LoginScreen() {
       {/* Centered logo and text */}
       <View style={styles.middleContent}>
         <Image 
-          source={require('./../assets/images/Orange_copy 2.png')}
+          source={require('./../assets/images/Orange_copy 2.png')} // Ensure the correct image path
           style={styles.logo}
           resizeMode="contain"
         />
@@ -20,57 +21,58 @@ export default function LoginScreen() {
         </Text>
       </View>
       
-      {/* Button at the bottom */}
-      <TouchableOpacity style={styles.btn}>
-        <Text style={styles.btnText}>Se Connecter</Text>
-      </TouchableOpacity>
+      {/* Two buttons for Sign In and Sign Up */}
+      <View style={styles.buttonContainer}>
+        <Link href="/sign_in" style={[styles.btn, styles.btnSpacing]}>
+          <Text style={styles.btnText}>Connecter-vous</Text>
+        </Link>
+
+        <Link href="/sign_up" style={styles.btn}>
+          <Text style={styles.btnText}>Inscriver-vous</Text>
+        </Link>
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  // Main container with background color matching the image
   container: {
     flex: 1,
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: Colors.Primary, // Matching background color with the image
+    backgroundColor: Colors.Primary,
   },
-  
-  // Centered content for logo and text
   middleContent: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  
-  // Logo styling
   logo: {
-    width: 250, // Increase the size of the logo
+    width: 250,
     height: 250,
   },
-  
-  // Subtitle text under the logo
   subtitle: {
-    fontSize: 20,
+    fontSize: 18,
     color: '#fff',
     fontFamily: 'outfit_bold',
     textAlign: 'center',
-    marginTop:-30, // Space between logo and text
-    fontSize:18
+    marginTop: -30, // Space between the logo and text
   },
-  
-  // Button style at the bottom
+  buttonContainer: {
+    width: '100%',
+    paddingHorizontal: 20,
+    marginBottom: 40,
+  },
   btn: {
     backgroundColor: '#fff',
     padding: 15,
     borderRadius: 99,
-    marginBottom: 40, // Move the button closer to the bottom of the screen
-    width: '70%',
+    width: '70%', // Adjust the width so buttons don't take full width and overlap
     alignSelf: 'center',
   },
-  
-  // Button text style with primary orange color
+  btnSpacing: {
+    marginBottom: 20, // Add more space between the buttons
+  },
   btnText: {
     textAlign: 'center',
     color: Colors.Primary,
