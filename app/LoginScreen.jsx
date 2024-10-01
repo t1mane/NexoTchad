@@ -2,9 +2,11 @@ import { View, Text, Image, TouchableOpacity } from 'react-native';
 import React from 'react';
 import { Colors } from '@/constants/Colors';
 import { StyleSheet } from 'react-native';
-import { Link } from 'expo-router'; // Import Link for navigation
+import { Link, useRouter } from 'expo-router'; // Import Link for navigation
 
 export default function LoginScreen() {
+  const router = useRouter();
+
   return (
     <View style={styles.container}>
       {/* Centered logo and text */}
@@ -23,13 +25,19 @@ export default function LoginScreen() {
       
       {/* Two buttons for Sign In and Sign Up */}
       <View style={styles.buttonContainer}>
-        <Link href="/sign_in" style={[styles.btn, styles.btnSpacing]}>
-          <Text style={styles.btnText}>Connecter-vous</Text>
-        </Link>
+        <TouchableOpacity
+          style={[styles.btn, styles.btnSpacing]}
+          onPress={() => router.push('pages/sign_in')}
+        >
+          <Text style={styles.btnText}>Connectez-vous</Text>
+        </TouchableOpacity>
 
-        <Link href="/sign_up" style={styles.btn}>
-          <Text style={styles.btnText}>Inscriver-vous</Text>
-        </Link>
+        <TouchableOpacity
+          style={styles.btn}
+          onPress={() => router.push('pages/sign_up')}
+        >
+          <Text style={styles.btnText}>Inscrivez-vous</Text>
+        </TouchableOpacity>
       </View>
     </View>
   );
