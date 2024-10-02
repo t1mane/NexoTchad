@@ -15,7 +15,7 @@ export default function SignInScreen() {
       />
 
       {/* Title */}
-      <Text style={styles.title}>Connectez-vous à votre compte en ligne</Text>
+      <Text style={styles.title}>Connectez-vous à votre compte</Text>
 
       {/* Input Fields */}
       <View style={styles.inputContainer}>
