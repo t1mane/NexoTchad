@@ -7,12 +7,14 @@ export default function SignInScreen() {
   return (
     <View style={styles.container}>
       
-      {/* Logo Section */}
-      <Image 
-        source={require('./../../assets/images/Orange_copy 2.png')} // Adjusted image path and renamed file
-        style={styles.logo}
-        resizeMode="contain"
-      />
+      {/* Logo Container with background */}
+      <View style={styles.logoContainer}>
+        <Image 
+          source={require('./../../assets/images/Orange_copy 2.png')} // Adjusted image path and renamed file
+          style={styles.logo}
+          resizeMode="contain"
+        />
+      </View>
 
       {/* Title */}
       <Text style={styles.title}>Connectez-vous à votre compte</Text>
@@ -68,13 +70,19 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#fff",
     padding: 20,
-    justifyContent: "center",
+    justifyContent: "flex-start", // Ensure content starts at the top
+  },
+  logoContainer: {
+    backgroundColor: Colors.Primary, // Orange background (assuming Colors.Primary is your orange color)
+    width: '110%', // Full width of the screen
+    height: 100,   // Adjust height as needed to cover the top part
+    justifyContent: 'center', // Center logo vertically within the container
+    alignItems: 'center',     // Center logo horizontally within the container
+    marginBottom: 30,         // Add space between the logo container and the rest of the content
   },
   logo: {
-    width: 150,
-    height: 80,
-    alignSelf: "center",
-    marginBottom: 20,
+    width: 150,    // Adjust logo width
+    height: 100,   // Adjust logo height
   },
   title: {
     fontSize: 20,
