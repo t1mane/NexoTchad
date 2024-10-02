@@ -1,6 +1,8 @@
 import React from "react";
 import { View, Text, TextInput, TouchableOpacity, Image, StyleSheet, ScrollView } from "react-native";
-import Colors from "./../../constants/Colors";
+import { Link } from "expo-router";  // Added the Link import
+import { Colors } from '@/constants/Colors'; // Ensure this is correctly imported
+
 
 export default function SignUpScreen() {
   return (
@@ -53,6 +55,11 @@ export default function SignUpScreen() {
           <Text style={styles.createAccountButtonText}>Créer un compte</Text>
         </TouchableOpacity>
 
+        {/* Add navigation back to Sign In */}
+        <Link href="/sign_in" style={styles.signUpButton}>
+          <Text style={styles.signUpButtonText}>Déjà un compte? Connectez-vous</Text>
+        </Link>
+
         {/* Language options */}
         <View style={styles.languageContainer}>
           <Text style={styles.language}>English</Text>
@@ -94,7 +101,7 @@ const styles = StyleSheet.create({
   },
   input: {
     borderWidth: 1,
-    borderColor: Colors.lightGray,
+    borderColor: '#000',
     borderRadius: 10,
     padding: 10,
     marginBottom: 15,
@@ -108,7 +115,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 20,
   },
-
   createAccountButton: {
     borderColor: Colors.primary,
     borderWidth: 1,
@@ -120,6 +126,19 @@ const styles = StyleSheet.create({
   },
   createAccountButtonText: {
     color: "#fff", // White text for the button to contrast with the orange background
+    fontSize: 16,
+    fontWeight: "bold",
+  },
+  signUpButton: {
+    borderColor: Colors.Primary,
+    borderWidth: 1,
+    paddingVertical: 15,
+    borderRadius: 5,
+    marginBottom: 20,
+  },
+  signUpButtonText: {
+    textAlign: "center",
+    color: Colors.Primary,
     fontSize: 16,
     fontWeight: "bold",
   },
