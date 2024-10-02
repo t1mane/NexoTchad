@@ -23,28 +23,28 @@ export default function SignUpScreen() {
         <View style={styles.inputContainer}>
           <TextInput
             placeholder="Prénom"
-            placeholderTextColor="#000" // Set to black explicitly
+            placeholderTextColor="#9AA0A6" // Set to black explicitly
             style={styles.input}
           />
           <TextInput
             placeholder="Nom de Famille"
-            placeholderTextColor="#000" // Set to black explicitly
+            placeholderTextColor="#9AA0A6" // Set to black explicitly
             style={styles.input}
           />
           <TextInput
             placeholder="Email"
-            placeholderTextColor="#000" // Set to black explicitly
+            placeholderTextColor="#9AA0A6" // Set to black explicitly
             style={styles.input}
           />
           <TextInput
             placeholder="Mot de passe"
-            placeholderTextColor="#000" // Set to black explicitly
+            placeholderTextColor="#9AA0A6" // Set to black explicitly
             secureTextEntry
             style={styles.input}
           />
           <TextInput
             placeholder="Confirmer mot de passe"
-            placeholderTextColor="#000" // Set to black explicitly
+            placeholderTextColor="#9AA0A6" // Set to black explicitly
             secureTextEntry
             style={styles.input}
           />
@@ -101,7 +101,7 @@ const styles = StyleSheet.create({
   },
   input: {
     borderWidth: 1,
-    borderColor: '#000',
+    borderColor: '#ccc',
     borderRadius: 10,
     padding: 10,
     marginBottom: 15,
@@ -116,13 +116,13 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   createAccountButton: {
-    borderColor: Colors.primary,
+    borderColor: Colors.Primary,
     borderWidth: 1,
     paddingVertical: 15,
     borderRadius: 10,
     alignItems: "center",
     marginBottom: 20,
-    backgroundColor: Colors.primary // Corrected to apply Colors.primary for background
+    backgroundColor: Colors.Primary // Corrected to apply Colors.primary for background
   },
   createAccountButtonText: {
     color: "#fff", // White text for the button to contrast with the orange background

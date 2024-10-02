@@ -20,12 +20,14 @@ export default function SignInScreen() {
       {/* Input Fields */}
       <View style={styles.inputContainer}>
         <TextInput
-          placeholder="account number"
+          placeholder="Numero de Compte"
+          placeholderTextColor="#9AA0A6"
           style={styles.input}
         />
         <TextInput
           placeholder="password"
           secureTextEntry
+          placeholderTextColor="#9AA0A6"
           style={styles.input}
         />
       </View>
