@@ -62,9 +62,10 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 18,
     color: '#fff',
-    fontFamily: 'outfit_bold',
+    fontFamily: 'outfit_Bold',
     textAlign: 'center',
     marginTop: -30, // Space between the logo and text
+    fontWeight: "bold",
   },
   buttonContainer: {
     width: '100%',
@@ -84,7 +85,8 @@ const styles = StyleSheet.create({
   btnText: {
     textAlign: 'center',
     color: Colors.Primary,
-    fontFamily: 'outfit_bold',
+    fontFamily: 'outfit_Bold',
     fontSize: 15,
+    fontWeight: "bold",
   },
 });

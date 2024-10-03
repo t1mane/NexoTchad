@@ -1,14 +1,38 @@
-import React from "react";
-import { View, Text, TextInput, TouchableOpacity, Image, StyleSheet, ScrollView } from "react-native";
-import { Link } from "expo-router";  // Added the Link import
-import { Colors } from '@/constants/Colors'; // Ensure this is correctly imported
-
+import React, { useState } from "react";
+import { View, Text, TextInput, TouchableOpacity, Image, StyleSheet, ScrollView, Alert } from "react-native";
+import { useRouter } from 'expo-router'; // For navigation
+import { createUser } from './../../lib/appwrite'; // Assuming createUser is defined properly
 
 export default function SignUpScreen() {
+  const router = useRouter();
+
+  // Local state to capture user input
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+
+  // Function to handle user sign-up
+  const handleSignUp = async () => {
+    if (password !== confirmPassword) {
+      Alert.alert('Error', 'Passwords do not match');
+      return;
+    }
+
+    try {
+      const response = await createUser(email, password, `${firstName} ${lastName}`);
+      console.log('User successfully created:', response);
+      router.push('(tabs)/home'); // Navigate to home screen after sign up
+    } catch (error) {
+      Alert.alert('Sign-up Error', error.message);
+    }
+  };
+
   return (
     <ScrollView contentContainerStyle={styles.scrollContainer}>
       <View style={styles.container}>
-        {/* Logo section at the top */}
+        {/* Logo section */}
         <View style={styles.logoContainer}>
           <Image
             source={require('./../../assets/images/Orange_copy 2.png')}
@@ -17,55 +41,64 @@ export default function SignUpScreen() {
           />
         </View>
 
-        <Text style={styles.title}>Crée un compte</Text>
+        <Text style={styles.title}>Créez un compte</Text>
 
         {/* Input fields */}
         <View style={styles.inputContainer}>
           <TextInput
             placeholder="Prénom"
-            placeholderTextColor="#9AA0A6" // Set to black explicitly
+            placeholderTextColor="#9AA0A6"
             style={styles.input}
+            value={firstName}
+            onChangeText={setFirstName}
           />
           <TextInput
-            placeholder="Nom de Famille"
-            placeholderTextColor="#9AA0A6" // Set to black explicitly
+            placeholder="Nom de famille"
+            placeholderTextColor="#9AA0A6"
             style={styles.input}
+            value={lastName}
+            onChangeText={setLastName}
           />
           <TextInput
             placeholder="Email"
-            placeholderTextColor="#9AA0A6" // Set to black explicitly
+            placeholderTextColor="#9AA0A6"
             style={styles.input}
+            value={email}
+            onChangeText={setEmail}
           />
           <TextInput
             placeholder="Mot de passe"
-            placeholderTextColor="#9AA0A6" // Set to black explicitly
+            placeholderTextColor="#9AA0A6"
             secureTextEntry
             style={styles.input}
+            value={password}
+            onChangeText={setPassword}
           />
           <TextInput
             placeholder="Confirmer mot de passe"
-            placeholderTextColor="#9AA0A6" // Set to black explicitly
+            placeholderTextColor="#9AA0A6"
             secureTextEntry
             style={styles.input}
+            value={confirmPassword}
+            onChangeText={setConfirmPassword}
           />
         </View>
 
         {/* "Créer un compte" button */}
-        <TouchableOpacity style={styles.createAccountButton}>
+        <TouchableOpacity
+          style={styles.createAccountButton}
+          onPress={handleSignUp}
+        >
           <Text style={styles.createAccountButtonText}>Créer un compte</Text>
         </TouchableOpacity>
 
-        {/* Add navigation back to Sign In */}
-        <Link href="/sign_in" style={styles.signUpButton}>
-          <Text style={styles.signUpButtonText}>Déjà un compte? Connectez-vous</Text>
-        </Link>
-
-        {/* Language options */}
-        <View style={styles.languageContainer}>
-          <Text style={styles.language}>English</Text>
-          <Text style={styles.language}>Français</Text>
-          <Text style={styles.language}>عربي</Text>
-        </View>
+        {/* Navigate back to Sign In */}
+        <TouchableOpacity
+          style={styles.createAccountButton2}
+          onPress={() => router.push('pages/sign_in')}
+        >
+          <Text style={styles.createAccountButton2Text}>j'ai deja un compte</Text>
+        </TouchableOpacity>
       </View>
     </ScrollView>
   );
@@ -80,75 +113,62 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#fff",
     padding: 20,
+    justifyContent: "center",
+    alignItems: "center",
   },
   logoContainer: {
-    alignSelf: 'flex-start', // Align logo to the top-left of the screen
-    marginTop: 100,           // Add some margin to the top of the logo
-    marginBottom: 30,        // Space between logo and title
-  },
-  logo: {
-    width: 350,
-    height: 100,
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: "bold",
-    textAlign: "center",
     marginBottom: 20,
   },
+  logo: {
+    width: 150,
+    height: 50,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: "bold",
+    marginBottom: 20,
+    textAlign: "center",
+  },
   inputContainer: {
+    width: "100%",
     marginBottom: 20,
   },
   input: {
+    width: "100%",
+    height: 50,
+    borderColor: "#ccc",
     borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 10,
-    padding: 10,
-    marginBottom: 15,
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    marginBottom: 10,
     fontSize: 16,
-    color: "#000", // Explicitly setting text color to black when typing
-  },
-  signupButton: {
-    backgroundColor: Colors.primary, // Assuming you have Colors.primary defined as orange
-    paddingVertical: 15,
-    borderRadius: 10,
-    alignItems: "center",
-    marginBottom: 20,
+    color: "#333",
   },
   createAccountButton: {
-    borderColor: Colors.Primary,
-    borderWidth: 1,
+    backgroundColor: "#FF6600", // Orange color
     paddingVertical: 15,
-    borderRadius: 10,
+    paddingHorizontal: 40,
+    borderRadius: 8,
     alignItems: "center",
-    marginBottom: 20,
-    backgroundColor: Colors.Primary // Corrected to apply Colors.primary for background
+    marginVertical: 10,
   },
   createAccountButtonText: {
-    color: "#fff", // White text for the button to contrast with the orange background
+    color: "#fff",
     fontSize: 16,
     fontWeight: "bold",
   },
-  signUpButton: {
-    borderColor: Colors.Primary,
-    borderWidth: 1,
+  createAccountButton2: {
+    borderColor: "#FF6600",
+    borderWidth: 2,
     paddingVertical: 15,
-    borderRadius: 5,
-    marginBottom: 20,
+    paddingHorizontal: 40,
+    borderRadius: 8,
+    alignItems: "center",
+    marginVertical: 10,
   },
-  signUpButtonText: {
-    textAlign: "center",
-    color: Colors.Primary,
+  createAccountButton2Text: {
+    color: "#FF6600",
     fontSize: 16,
     fontWeight: "bold",
-  },
-  languageContainer: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-    marginTop: 10,
-  },
-  language: {
-    fontSize: 14,
-    color: Colors.darkGray, // Assuming you have Colors.darkGray defined
   },
 });

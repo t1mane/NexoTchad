@@ -2,8 +2,10 @@ import React from "react";
 import { View, Text, TextInput, TouchableOpacity, Image, StyleSheet } from "react-native";
 import { Link } from "expo-router"; // Make sure expo-router is properly installed
 import { Colors } from '@/constants/Colors'; // Ensure this is correctly imported
+import {useRouter } from 'expo-router'; // Import Link for navigation
 
 export default function SignInScreen() {
+  const router = useRouter();
   return (
     <View style={styles.container}>
       
@@ -40,7 +42,9 @@ export default function SignInScreen() {
       </TouchableOpacity>
 
       {/* Sign In Button */}
-      <TouchableOpacity style={styles.signInButton}>
+      <TouchableOpacity style={styles.signInButton}
+      onPress={() => router.push('(tabs)/home')}
+      >
         <Text style={styles.signInButtonText}>se connecter</Text>
       </TouchableOpacity>
 
@@ -50,7 +54,7 @@ export default function SignInScreen() {
       </View>
 
       {/* Sign Up Button */}
-      <Link href="/sign_up" style={styles.signUpButton}>
+      <Link href="pages/sign_up" style={styles.signUpButton}>
         <Text style={styles.signUpButtonText}>créer un compte</Text>
       </Link>
 
