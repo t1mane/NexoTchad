@@ -78,14 +78,14 @@ const styles = StyleSheet.create({
   },
   logoContainer: {
     backgroundColor: Colors.Primary, // Orange background (assuming Colors.Primary is your orange color)
-    width: '110%', // Full width of the screen
+    width: '75', // Full width of the screen
     height: 100,   // Adjust height as needed to cover the top part
     justifyContent: 'center', // Center logo vertically within the container
     alignItems: 'center',     // Center logo horizontally within the container
     marginBottom: 30,         // Add space between the logo container and the rest of the content
   },
   logo: {
-    width: 150,    // Adjust logo width
+    width: 200,    // Adjust logo width
     height: 100,   // Adjust logo height
   },
   title: {

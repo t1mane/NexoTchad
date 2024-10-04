@@ -2,10 +2,35 @@ import { View, Text, Image, TouchableOpacity } from 'react-native';
 import React from 'react';
 import { Colors } from '@/constants/Colors';
 import { StyleSheet } from 'react-native';
-import { Link, useRouter } from 'expo-router'; // Import Link for navigation
+import { account } from '../lib/appwrite'; // Import account object from your appwrite config
+import { useRouter } from 'expo-router'; // Import useRouter for potential routing
 
 export default function LoginScreen() {
   const router = useRouter();
+
+  // Function to handle Google login
+  const handleGoogleLogin = async () => {
+    try {
+      await account.createOAuth2Session(
+        'google', 
+        'https://auth.expo.io/@t1mane/NexoTchad', // Development
+        'https://cloud.appwrite.io/v1/account/sessions/oauth2/callback/google/66fe2be200298aebf8b9'
+      );
+    } catch (error) {
+      console.error('Google Login Error:', error.message);
+    }
+  };
+  
+
+  // Function to handle Microsoft login
+  const handleMicrosoftLogin = async () => {
+    try {
+      // Redirect to Microsoft OAuth
+      await account.createOAuth2Session('microsoft', 'your-redirect-url-here', 'https://cloud.appwrite.io/v1/account/sessions/oauth2/callback/microsoft/66fe2be200298aebf8b9');
+    } catch (error) {
+      console.error('Microsoft Login Error:', error.message);
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -23,20 +48,20 @@ export default function LoginScreen() {
         </Text>
       </View>
       
-      {/* Two buttons for Sign In and Sign Up */}
+      {/* Two buttons for Sign In with Google and Microsoft */}
       <View style={styles.buttonContainer}>
         <TouchableOpacity
           style={[styles.btn, styles.btnSpacing]}
-          onPress={() => router.push('pages/sign_in')}
+          onPress={handleGoogleLogin} // Trigger Google login
         >
-          <Text style={styles.btnText}>Connectez-vous</Text>
+          <Text style={styles.btnText}>Login Using Google</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
           style={styles.btn}
-          onPress={() => router.push('pages/sign_up')}
+          onPress={handleMicrosoftLogin} // Trigger Microsoft login
         >
-          <Text style={styles.btnText}>Inscrivez-vous</Text>
+          <Text style={styles.btnText}>Login Using Microsoft</Text>
         </TouchableOpacity>
       </View>
     </View>

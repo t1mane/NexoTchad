@@ -17,6 +17,7 @@
   "dependencies": {
     "@clerk/clerk-expo": "^2.2.17",
     "@expo/vector-icons": "^14.0.2",
+    "@react-native-community/cli-server-api": "^14.1.1",
     "@react-navigation/native": "^6.1.18",
     "@react-navigation/native-stack": "^6.11.0",
     "appwrite": "^16.0.2",
