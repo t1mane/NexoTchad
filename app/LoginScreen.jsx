@@ -1,65 +1,73 @@
 import { View, Text, Image, TouchableOpacity } from 'react-native';
+import { useRouter } from 'expo-router';
 import React from 'react';
 import { Colors } from '@/constants/Colors';
+import * as WebBrowser from 'expo-web-browser';
 import { StyleSheet } from 'react-native';
-import { account } from '../lib/appwrite'; // Import account object from your appwrite config
-import { useRouter } from 'expo-router'; // Import useRouter for potential routing
+import { useOAuth } from '@clerk/clerk-expo'
+import * as Linking from 'expo-linking'
+import { useCallback } from 'react';
+
+export const useWarmUpBrowser = () => {
+  React.useEffect(() => {
+    // Warm up the android browser to improve UX
+    // https://docs.expo.dev/guides/authentication/#improving-user-experience
+    void WebBrowser.warmUpAsync()
+    return () => {
+      void WebBrowser.coolDownAsync()
+    }
+  }, [])
+}
+
+WebBrowser.maybeCompleteAuthSession()
 
 export default function LoginScreen() {
-  const router = useRouter();
+  useWarmUpBrowser();
+  const { startOAuthFlow } = useOAuth({ strategy: 'oauth_google' })
+  const router = useRouter(); // Initialize the router
 
-  // Function to handle Google login
-  const handleGoogleLogin = async () => {
+  const onPress = useCallback(async () => {
     try {
-      await account.createOAuth2Session(
-        'google', 
-        'https://auth.expo.io/@t1mane/NexoTchad', // Development
-        'https://cloud.appwrite.io/v1/account/sessions/oauth2/callback/google/66fe2be200298aebf8b9'
-      );
-    } catch (error) {
-      console.error('Google Login Error:', error.message);
-    }
-  };
-  
+      const { createdSessionId, signIn, signUp, setActive } = await startOAuthFlow({
+        redirectUrl: Linking.createURL('/(tabs)/home', { scheme: 'myapp' }),
+      })
 
-  // Function to handle Microsoft login
-  const handleMicrosoftLogin = async () => {
-    try {
-      // Redirect to Microsoft OAuth
-      await account.createOAuth2Session('microsoft', 'your-redirect-url-here', 'https://cloud.appwrite.io/v1/account/sessions/oauth2/callback/microsoft/66fe2be200298aebf8b9');
-    } catch (error) {
-      console.error('Microsoft Login Error:', error.message);
+      if (createdSessionId) {
+        // If the session was successfully created, redirect to the home page
+        router.push('/(tabs)/home'); // Redirect to the home page after login
+      } else {
+        // Use signIn or signUp for next steps such as MFA
+      }
+    } catch (err) {
+      console.error('OAuth error', err);
     }
-  };
+  }, [router]);
+
 
   return (
     <View style={styles.container}>
-      {/* Centered logo and text */}
       <View style={styles.middleContent}>
         <Image 
-          source={require('./../assets/images/Orange_copy 2.png')} // Ensure the correct image path
+          source={require('./../assets/images/Orange_copy 2.png')} // Ensure correct image path
           style={styles.logo}
           resizeMode="contain"
         />
-        
-        {/* Text under the logo */}
         <Text style={styles.subtitle}>
           Déposez, transférez et gérez votre argent facilement.
         </Text>
       </View>
       
-      {/* Two buttons for Sign In with Google and Microsoft */}
       <View style={styles.buttonContainer}>
         <TouchableOpacity
           style={[styles.btn, styles.btnSpacing]}
-          onPress={handleGoogleLogin} // Trigger Google login
+          onPress={onPress} // Trigger Google login
         >
           <Text style={styles.btnText}>Login Using Google</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
           style={styles.btn}
-          onPress={handleMicrosoftLogin} // Trigger Microsoft login
+          onPress={() => {}} // Placeholder for Microsoft login
         >
           <Text style={styles.btnText}>Login Using Microsoft</Text>
         </TouchableOpacity>
