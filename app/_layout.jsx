@@ -35,20 +35,21 @@ export default function Layout() {
 function AuthNavigator({ setIsAuthenticated, router }) {
   const { isSignedIn } = useAuth();
 
-  useEffect(() => {
-    if (isSignedIn) {
-      setIsAuthenticated(true);
-      router.replace("/(tabs)/home"); // Navigate to home if signed in
-    } else {
-      setIsAuthenticated(false);
-      router.replace("/loginscreen"); // Navigate to loginscreen if not signed in
-    }
-  }, [isSignedIn]);
+  // app/_layout.jsx - Inside useEffect in AuthNavigator
+useEffect(() => {
+  if (isSignedIn) {
+    setIsAuthenticated(true);
+    router.replace("/(tabs)/home"); // Using replace to avoid back navigation to loginscreen
+  } else {
+    setIsAuthenticated(false);
+    router.replace("/loginscreen");
+  }
+}, [isSignedIn]);
 
   return (
     <Stack
       screenOptions={({ route }) => ({
-        headerShown: route.name === 'loginscreen' ? false : true, // Hide header only on loginscreen
+        headerShown: false
       })}
     />
   );

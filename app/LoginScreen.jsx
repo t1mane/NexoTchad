@@ -25,31 +25,33 @@ export default function LoginScreen() {
   const { startOAuthFlow: startMicrosoftOAuthFlow } = useOAuth({ strategy: 'oauth_microsoft' });
   const router = useRouter(); 
 
-  const onPressGoogle = useCallback(async () => {
-    try {
-      const { createdSessionId } = await startGoogleOAuthFlow({
-        redirectUrl: Linking.createURL('/(tabs)/home', { scheme: 'myapp' }),
-      });
-      if (createdSessionId) {
-        router.push('/(tabs)/home');
-      }
-    } catch (err) {
-      console.error('Google OAuth error', err);
+  // app/loginscreen.jsx - Modify both callbacks for onPressGoogle and onPressMicrosoft
+const onPressGoogle = useCallback(async () => {
+  try {
+    const { createdSessionId } = await startGoogleOAuthFlow({
+      redirectUrl: Linking.createURL('/(tabs)/home', { scheme: 'myapp' }),
+    });
+    if (createdSessionId) {
+      router.replace('/(tabs)/home'); // Replace instead of push
     }
-  }, [router]);
+  } catch (err) {
+    console.error('Google OAuth error', err);
+  }
+}, [router]);
 
-  const onPressMicrosoft = useCallback(async () => {
-    try {
-      const { createdSessionId } = await startMicrosoftOAuthFlow({
-        redirectUrl: Linking.createURL('/(tabs)/home', { scheme: 'myapp' }),
-      });
-      if (createdSessionId) {
-        router.push('/(tabs)/home');
-      }
-    } catch (err) {
-      console.error('Microsoft OAuth error', err);
+const onPressMicrosoft = useCallback(async () => {
+  try {
+    const { createdSessionId } = await startMicrosoftOAuthFlow({
+      redirectUrl: Linking.createURL('/(tabs)/home', { scheme: 'myapp' }),
+    });
+    if (createdSessionId) {
+      router.replace('/(tabs)/home'); // Replace instead of push
     }
-  }, [router]);
+  } catch (err) {
+    console.error('Microsoft OAuth error', err);
+  }
+}, [router]);
+
 
   return (
     <View style={styles.container}>

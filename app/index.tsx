@@ -6,7 +6,7 @@ export default function Index() {
   return (
     <Stack>
       <Stack.Screen name="loginscreen" options={{ headerShown: false }} />
-      <Stack.Screen name="(tabs)/home" options={{ title: "Home" }} />
+      <Stack.Screen name="(tabs)/home" options={{ title: "Home", headerShown: false }} />
       <Stack.Screen name="(tabs)/recent" options={{ title: "Recent Activity" }} />
     </Stack>
   );
