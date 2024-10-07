@@ -10,8 +10,6 @@ import { useCallback } from 'react';
 
 export const useWarmUpBrowser = () => {
   React.useEffect(() => {
-    // Warm up the android browser to improve UX
-    // https://docs.expo.dev/guides/authentication/#improving-user-experience
     void WebBrowser.warmUpAsync()
     return () => {
       void WebBrowser.coolDownAsync()
@@ -23,32 +21,41 @@ WebBrowser.maybeCompleteAuthSession()
 
 export default function LoginScreen() {
   useWarmUpBrowser();
-  const { startOAuthFlow } = useOAuth({ strategy: 'oauth_google' })
-  const router = useRouter(); // Initialize the router
+  const { startOAuthFlow: startGoogleOAuthFlow } = useOAuth({ strategy: 'oauth_google' });
+  const { startOAuthFlow: startMicrosoftOAuthFlow } = useOAuth({ strategy: 'oauth_microsoft' });
+  const router = useRouter(); 
 
-  const onPress = useCallback(async () => {
+  const onPressGoogle = useCallback(async () => {
     try {
-      const { createdSessionId, signIn, signUp, setActive } = await startOAuthFlow({
+      const { createdSessionId } = await startGoogleOAuthFlow({
         redirectUrl: Linking.createURL('/(tabs)/home', { scheme: 'myapp' }),
-      })
-
+      });
       if (createdSessionId) {
-        // If the session was successfully created, redirect to the home page
-        router.push('/(tabs)/home'); // Redirect to the home page after login
-      } else {
-        // Use signIn or signUp for next steps such as MFA
+        router.push('/(tabs)/home');
       }
     } catch (err) {
-      console.error('OAuth error', err);
+      console.error('Google OAuth error', err);
     }
   }, [router]);
 
+  const onPressMicrosoft = useCallback(async () => {
+    try {
+      const { createdSessionId } = await startMicrosoftOAuthFlow({
+        redirectUrl: Linking.createURL('/(tabs)/home', { scheme: 'myapp' }),
+      });
+      if (createdSessionId) {
+        router.push('/(tabs)/home');
+      }
+    } catch (err) {
+      console.error('Microsoft OAuth error', err);
+    }
+  }, [router]);
 
   return (
     <View style={styles.container}>
       <View style={styles.middleContent}>
         <Image 
-          source={require('./../assets/images/Orange_copy 2.png')} // Ensure correct image path
+          source={require('./../assets/images/Orange_copy 2.png')}
           style={styles.logo}
           resizeMode="contain"
         />
@@ -60,14 +67,14 @@ export default function LoginScreen() {
       <View style={styles.buttonContainer}>
         <TouchableOpacity
           style={[styles.btn, styles.btnSpacing]}
-          onPress={onPress} // Trigger Google login
+          onPress={onPressGoogle} 
         >
           <Text style={styles.btnText}>Login Using Google</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
           style={styles.btn}
-          onPress={() => {}} // Placeholder for Microsoft login
+          onPress={onPressMicrosoft}
         >
           <Text style={styles.btnText}>Login Using Microsoft</Text>
         </TouchableOpacity>
@@ -97,7 +104,7 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontFamily: 'outfit_Bold',
     textAlign: 'center',
-    marginTop: -30, // Space between the logo and text
+    marginTop: -30, 
     fontWeight: "bold",
   },
   buttonContainer: {
@@ -109,11 +116,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     padding: 15,
     borderRadius: 99,
-    width: '70%', // Adjust the width so buttons don't take full width and overlap
+    width: '70%',
     alignSelf: 'center',
   },
   btnSpacing: {
-    marginBottom: 20, // Add more space between the buttons
+    marginBottom: 20, 
   },
   btnText: {
     textAlign: 'center',
