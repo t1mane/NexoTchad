@@ -1,6 +1,7 @@
 import { StatusBar } from "expo-status-bar";
 import { Text, View, StyleSheet } from "react-native";
 import Header from "../../components/Home/Header";
+import  Balance from "./../../components/Home/Balance"
 
 export default function HomeScreen() {
   return (
@@ -14,6 +15,7 @@ export default function HomeScreen() {
 
 
       {/* Balances */}
+      <Balance/>
 
       
       {/* Transfer funds */}

@@ -21,7 +21,8 @@ export default function Header() {
         >Bienvenue,</Text>
         <Text style={{
             fontFamily:"Oswald",
-            fontSize:20
+            fontSize:20,
+            color:"#ff5a00"
         }}>{user?.fullName}</Text>
 
         </View>
