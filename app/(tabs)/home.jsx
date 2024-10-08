@@ -1,21 +1,34 @@
 import { StatusBar } from "expo-status-bar";
 import { Text, View, StyleSheet } from "react-native";
+import Header from "../../components/Home/Header";
 
 export default function HomeScreen() {
   return (
-    <View style={styles.container}>
-      <StatusBar style="dark" translucent={false} backgroundColor="#f9f9f9"/>
-      <Text>Welcome to the Home Screen!</Text>
+    <View style={{
+      padding:20,
+      marginTop:20
+    }}>
+
+      {/* Header */}
+      <Header/>
+
+
+      {/* Balances */}
+
+      
+      {/* Transfer funds */}
+
+
+      {/* contacts */}
+
+
+      {/* Top UP */}
+
+
+    
+      
+
+
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-    backgroundColor: '#f9f9f9',
-  },
-});

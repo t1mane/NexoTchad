@@ -2,6 +2,7 @@ import { ClerkProvider, ClerkLoaded, useAuth } from '@clerk/clerk-expo';
 import { Stack, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import * as SecureStore from 'expo-secure-store';
+import { useFonts } from 'expo-font';
 
 const publishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY;
 
@@ -20,6 +21,17 @@ const tokenCache = {
 };
 
 export default function Layout() {
+
+  useFonts({
+    'Oswald': require('./../assets/fonts/Oswald-Regular.ttf'),
+    'Oswald-Medium': require('./../assets/fonts/Oswald-Medium.ttf'),
+    'Oswald-Bold': require('./../assets/fonts/Oswald-Bold.ttf'),
+
+
+
+  })
+
+
   const [isAuthenticated, setIsAuthenticated] = useState(null);
   const router = useRouter();
 
