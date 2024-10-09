@@ -13,7 +13,7 @@ export default function Topup() {
     
       return (
         <View style={styles.outerContainer}>
-          <Text style={styles.title}>recharger</Text>
+          <Text style={styles.title}>Recharger</Text>
           <View style={styles.buttonContainer}>
             <TouchableOpacity style={styles.button} onPress={handleEnvoyerPress}>
               <Text style={styles.buttonText}>Recharger</Text>

@@ -22,7 +22,6 @@ export default function HomeScreen() {
         <Balance />
 
         {/* Divider between Balance and Transfer funds */}
-        <View style={styles.divider} />
 
         {/* Transfer funds */}
         <Transferfunds />

@@ -62,7 +62,7 @@ const onPressMicrosoft = useCallback(async () => {
           resizeMode="contain"
         />
         <Text style={styles.subtitle}>
-          Déposez, transférez et gérez votre argent facilement.
+          Déposez, transférez et gérez votre argent facilement
         </Text>
       </View>
       
@@ -102,9 +102,9 @@ const styles = StyleSheet.create({
     height: 250,
   },
   subtitle: {
-    fontSize: 18,
+    fontSize: 20,
     color: '#fff',
-    fontFamily: 'outfit_Bold',
+    fontFamily: 'Oswald-Bold',
     textAlign: 'center',
     marginTop: -30, 
     fontWeight: "bold",
