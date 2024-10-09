@@ -10,7 +10,8 @@ export default function Header() {
         display:'flex',
         flexDirection:'row',
         justifyContent:'space-between',
-        alignItems:'center'
+        alignItems:'center',
+        marginTop:25
     }}>
         <View>
         <Text
