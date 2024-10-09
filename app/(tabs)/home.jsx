@@ -1,5 +1,6 @@
 import { StatusBar } from "expo-status-bar";
 import { Text, View, StyleSheet, ScrollView } from "react-native";
+import { SafeAreaView } from 'react-native-safe-area-context';
 import Header from "../../components/Home/Header";
 import Balance from "./../../components/Home/Balance";
 import Transferfunds from "../../components/Home/Transferfunds";
@@ -8,41 +9,50 @@ import Topup from "./../../components/Home/Topup";
 
 export default function HomeScreen() {
   return (
-    <ScrollView contentContainerStyle={styles.container}>
+    <SafeAreaView style={styles.safeArea}>
+      <ScrollView contentContainerStyle={styles.container}>
 
-      {/* Header */}
-      <Header />
+        {/* Header */}
+        <Header />
 
-      {/* Divider between Header and Balance */}
-      <View style={styles.divider} />
+        {/* Divider between Header and Balance */}
+        <View style={styles.divider} />
 
-      {/* Balances */}
-      <Balance />
+        {/* Balances */}
+        <Balance />
 
-      {/* Divider between Balance and Transfer funds */}
+        {/* Divider between Balance and Transfer funds */}
+        <View style={styles.divider} />
 
-      {/* Transfer funds */}
-      <Transferfunds />
+        {/* Transfer funds */}
+        <Transferfunds />
 
-      {/* Divider between Transfer funds and Contacts */}
-      <View style={styles.divider} />
+        {/* Divider between Transfer funds and Contacts */}
+        <View style={styles.divider} />
 
-      {/* Contacts */}
-      <ContactsNexo />
+        {/* Contacts */}
+        <ContactsNexo />
 
-      <View style={styles.divider} />
+        <View style={styles.divider} />
 
-      {/* Top UP */}
-      <Topup />
+        {/* Top UP */}
+        <Topup />
 
-    </ScrollView>
+      </ScrollView>
+      {/* Optionally, make the status bar translucent */}
+      <StatusBar style="dark" translucent={true} />
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#f9f9f9', // Adjust to match your app’s background color
+  },
   container: {
     padding: 20,
-    marginTop: 20,
+    marginTop: -40,
     paddingBottom: 40, // Additional padding at the bottom for better spacing with the tab bar
   },
   divider: {
