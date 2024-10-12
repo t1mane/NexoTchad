@@ -54,7 +54,7 @@ useEffect(() => {
     router.replace("/(tabs)/home"); // Using replace to avoid back navigation to loginscreen
   } else {
     setIsAuthenticated(false);
-    router.replace("/loginscreen");
+    router.replace("/LoginScreen");
   }
 }, [isSignedIn]);
 
