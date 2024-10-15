@@ -1,68 +1,38 @@
-import { ClerkProvider, ClerkLoaded, useAuth } from '@clerk/clerk-expo';
+// app/_layout.jsx
+import { useEffect, useState } from 'react';
+import { onAuthStateChanged } from 'firebase/auth';
 import { Stack, useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
-import * as SecureStore from 'expo-secure-store';
+import { FIREBASE_AUTH } from './../config/firebaseConfig';
+import LoginScreen from './LoginScreen';
 import { useFonts } from 'expo-font';
 
-const publishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY;
-
-const tokenCache = {
-  async getToken(key) {
-    try {
-      return await SecureStore.getItemAsync(key);
-    } catch (error) {
-      console.error('SecureStore get item error:', error);
-      return null;
-    }
-  },
-  async saveToken(key, value) {
-    return SecureStore.setItemAsync(key, value);
-  },
-};
-
 export default function Layout() {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const router = useRouter();
 
+  // Load custom fonts
   useFonts({
     'Oswald': require('./../assets/fonts/Oswald-Regular.ttf'),
     'Oswald-Medium': require('./../assets/fonts/Oswald-Medium.ttf'),
     'Oswald-Bold': require('./../assets/fonts/Oswald-Bold.ttf'),
+  });
 
+  // Firebase Auth state listener
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(FIREBASE_AUTH, (user) => {
+      if (user) {
+        setIsAuthenticated(true);
+        router.replace('/(tabs)/home'); // Replace stack to prevent back navigation
+      } else {
+        setIsAuthenticated(false);
+        router.replace('/LoginScreen'); // Replace stack to prevent back navigation
+      }
+    });
 
-
-  })
-
-
-  const [isAuthenticated, setIsAuthenticated] = useState(null);
-  const router = useRouter();
-
-  return (
-    <ClerkProvider tokenCache={tokenCache} publishableKey={publishableKey}>
-      <ClerkLoaded>
-        <AuthNavigator setIsAuthenticated={setIsAuthenticated} router={router} />
-      </ClerkLoaded>
-    </ClerkProvider>
-  );
-}
-
-function AuthNavigator({ setIsAuthenticated, router }) {
-  const { isSignedIn } = useAuth();
-
-  // app/_layout.jsx - Inside useEffect in AuthNavigator
-useEffect(() => {
-  if (isSignedIn) {
-    setIsAuthenticated(true);
-    router.replace("/(tabs)/home"); // Using replace to avoid back navigation to loginscreen
-  } else {
-    setIsAuthenticated(false);
-    router.replace("/LoginScreen");
-  }
-}, [isSignedIn]);
+    return unsubscribe;
+  }, []);
 
   return (
-    <Stack
-      screenOptions={({ route }) => ({
-        headerShown: false
-      })}
-    />
+    <Stack screenOptions={{ headerShown: false }} />
   );
 }

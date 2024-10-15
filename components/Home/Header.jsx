@@ -1,12 +1,17 @@
 import { View, Text, ActivityIndicator, Image } from 'react-native';
-import React from 'react';
-import { useUser } from '@clerk/clerk-expo';
+import React, { useState, useEffect } from 'react';
 
 export default function Header() {
-    const { user, isLoaded } = useUser();
+    const [isLoaded, setIsLoaded] = useState(false);
+
+    useEffect(() => {
+        // Simulate a loading delay for the UI effect
+        const timer = setTimeout(() => setIsLoaded(true), 1000);
+        return () => clearTimeout(timer);
+    }, []);
 
     if (!isLoaded) {
-        // Display a loading indicator while user data is loading
+        // Display a loading indicator while data is "loading"
         return (
             <View style={{ padding: 20, alignItems: 'center' }}>
                 <ActivityIndicator size="small" color="#ff5a00" />
@@ -25,13 +30,13 @@ export default function Header() {
             <View>
                 <Text style={{ fontFamily: 'Oswald-Bold', fontSize: 18 }}>Bienvenue,</Text>
                 <Text style={{ fontFamily: "Oswald", fontSize: 20, color: "#ff5a00" }}>
-                    {user?.fullName}
+                    {/* Additional text can be added here if needed */}
                 </Text>
             </View>
-            <Image source={{ uri: user?.imageUrl }} style={{
+            <Image source={{ uri: 'https://placekitten.com/40/40' }} style={{
                 width: 40,
                 height: 40,
-                borderRadius: 99,
+                borderRadius: 20,
             }} />
         </View>
     );

@@ -1,22 +1,20 @@
-// Import the functions you need from the SDKs you need
-import { initializeApp } from "firebase/app";
-import { getAnalytics } from "firebase/analytics";
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
+import { initializeApp, getApps, getApp } from 'firebase/app';
+import { getAuth } from 'firebase/auth';
+import { getFirestore } from 'firebase/firestore';
 
-// Your web app's Firebase configuration
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
-  apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
-  authDomain: "nexo-tchad.firebaseapp.com",
-  projectId: "nexo-tchad",
-  storageBucket: "nexo-tchad.appspot.com",
-  messagingSenderId: "432362137253",
-  appId: "1:432362137253:web:fe1f88ea568d512b848f4c",
-  measurementId: "G-9D41T76RWE"
+  apiKey: "AIzaSyDPs3IYIPGuil3bk7rdDORPG5MzIq8NjUg",
+  authDomain: "nexotchad.firebaseapp.com",
+  projectId: "nexotchad",
+  storageBucket: "nexotchad.appspot.com",
+  messagingSenderId: "944673865745",
+  appId: "1:944673865745:web:7fd0a11c065b233ab231b0",
+  measurementId: "G-J7MXKWLEG3"
 };
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-export const db=getFirestore(app);
-const analytics = getAnalytics(app);
+// Initialize Firebase App (Singleton Pattern)
+const FIREBASE_APP = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+const FIREBASE_AUTH = getAuth(FIREBASE_APP);
+const FIRESTORE_DB = getFirestore(FIREBASE_APP);
+
+export { FIREBASE_APP, FIREBASE_AUTH, FIRESTORE_DB };

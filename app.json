@@ -5,7 +5,6 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "myapp",
     "userInterfaceStyle": "automatic",
     "splash": {
       "image": "./assets/images/splash.png",
@@ -14,15 +13,14 @@
     },
     "ios": {
       "supportsTablet": true,
-      "package": "com.jsm.Nexo"
+      "bundleIdentifier": "com.jsm.Nexo"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
-        
       },
-      "package":"com.jsm.Nexo"
+      "package": "com.jsm.Nexo"
     },
     "web": {
       "bundler": "metro",
@@ -31,9 +29,16 @@
     },
     "plugins": [
       "expo-router"
+      
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "3e2023ac-9a9a-4bc6-a6f5-83690f0960ee"
+      }
+    },
+    "scheme":"navigation-test"
   }
 }

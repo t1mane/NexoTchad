@@ -1,134 +1,154 @@
-import { View, Text, Image, TouchableOpacity } from 'react-native';
-import { useRouter } from 'expo-router';
-import React from 'react';
-import { Colors } from '@/constants/Colors';
-import * as WebBrowser from 'expo-web-browser';
-import { StyleSheet } from 'react-native';
-import { useOAuth } from '@clerk/clerk-expo'
-import * as Linking from 'expo-linking'
-import { useCallback } from 'react';
-
-export const useWarmUpBrowser = () => {
-  React.useEffect(() => {
-    void WebBrowser.warmUpAsync()
-    return () => {
-      void WebBrowser.coolDownAsync()
-    }
-  }, [])
-}
-
-WebBrowser.maybeCompleteAuthSession()
+import { useNavigation } from '@react-navigation/native';
+import { SafeAreaView, View, Text, Image, StyleSheet, TextInput, ActivityIndicator, TouchableOpacity, KeyboardAvoidingView, Platform } from 'react-native';
+import React, { useState } from 'react';
+import { FIREBASE_AUTH } from './../config/firebaseConfig';
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
+import ReactNativeAsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function LoginScreen() {
-  useWarmUpBrowser();
-  const { startOAuthFlow: startGoogleOAuthFlow } = useOAuth({ strategy: 'oauth_google' });
-  const { startOAuthFlow: startMicrosoftOAuthFlow } = useOAuth({ strategy: 'oauth_microsoft' });
-  const router = useRouter(); 
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const navigation = useNavigation();
 
-  // app/loginscreen.jsx - Modify both callbacks for onPressGoogle and onPressMicrosoft
-const onPressGoogle = useCallback(async () => {
-  try {
-    const { createdSessionId } = await startGoogleOAuthFlow({
-      redirectUrl: Linking.createURL('/(tabs)/home', { scheme: 'myapp' }),
-    });
-    if (createdSessionId) {
-      router.replace('/(tabs)/home'); // Replace instead of push
+  const signIn = async () => {
+    setLoading(true);
+    try {
+      const response = await signInWithEmailAndPassword(FIREBASE_AUTH, email, password);
+      navigation.reset({
+        index: 0,
+        routes: [{ name: "(tabs)" }],
+      });
+    } catch (error) {
+      console.log(error);
+      alert('Sign-in failed: ' + error.message);
+    } finally {
+      setLoading(false);
     }
-  } catch (err) {
-    console.error('Google OAuth error', err);
-  }
-}, [router]);
+  };
+  
 
-const onPressMicrosoft = useCallback(async () => {
-  try {
-    const { createdSessionId } = await startMicrosoftOAuthFlow({
-      redirectUrl: Linking.createURL('/(tabs)/home', { scheme: 'myapp' }),
-    });
-    if (createdSessionId) {
-      router.replace('/(tabs)/home'); // Replace instead of push
+  const signUp = async () => {
+    setLoading(true);
+    try {
+      const response = await createUserWithEmailAndPassword(FIREBASE_AUTH, email, password);
+      console.log(response);
+      alert('Check your emails for verification');
+    } catch (error) {
+      console.log(error);
+      alert('Sign-up failed: ' + error.message);
+    } finally {
+      setLoading(false);
     }
-  } catch (err) {
-    console.error('Microsoft OAuth error', err);
-  }
-}, [router]);
-
+  };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.middleContent}>
-        <Image 
-          source={require('./../assets/images/Orange_copy 2.png')}
-          style={styles.logo}
-          resizeMode="contain"
-        />
-        <Text style={styles.subtitle}>
-          Déposez, transférez et gérez votre argent facilement
-        </Text>
-      </View>
-      
-      <View style={styles.buttonContainer}>
-        <TouchableOpacity
-          style={[styles.btn, styles.btnSpacing]}
-          onPress={onPressGoogle} 
-        >
-          <Text style={styles.btnText}>Login Using Google</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.btn}
-          onPress={onPressMicrosoft}
-        >
-          <Text style={styles.btnText}>Login Using Microsoft</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
+    <SafeAreaView style={styles.container}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={{ flex: 1 }}
+      >
+        <View style={styles.middleContent}>
+          <Image 
+            source={require('./../assets/images/Orange_copy 2.png')}
+            style={styles.logo}
+            resizeMode="contain"
+          />
+          <Text style={styles.subtitle}>
+            Déposez, transférez et gérez votre argent facilement
+          </Text>
+          <View style={styles.loginContainer}>
+            <TextInput
+              value={email}
+              style={styles.input}
+              placeholder='Email'
+              autoCapitalize='none'
+              onChangeText={(text) => setEmail(text)}
+            />
+            <TextInput
+              secureTextEntry={true}
+              value={password}
+              style={styles.input}
+              placeholder='Password'
+              autoCapitalize='none'
+              onChangeText={(text) => setPassword(text)}
+            />
+            {loading ? (
+              <ActivityIndicator size='large' color='#0000ff' />
+            ) : (
+              <>
+                <TouchableOpacity style={styles.button} onPress={signIn}>
+                  <Text style={styles.buttonText}>Connecter-vous</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.button} onPress={signUp}>
+                  <Text style={styles.buttonText}>Creer un Compte</Text>
+                </TouchableOpacity>
+              </>
+            )}
+          </View>
+        </View>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'space-between',
+    justifyContent: 'flex-start',
     alignItems: 'center',
-    backgroundColor: Colors.Primary,
+    backgroundColor: "#ff5a00",
   },
   middleContent: {
     flex: 1,
-    justifyContent: 'center',
+    justifyContent: 'flex-start',
     alignItems: 'center',
+    paddingTop: 0,
   },
   logo: {
     width: 250,
     height: 250,
+    marginBottom: -40,
   },
   subtitle: {
     fontSize: 20,
     color: '#fff',
-    fontFamily: 'Oswald-Bold',
+    fontFamily: 'oswald-Bold',
     textAlign: 'center',
-    marginTop: -30, 
+    marginTop: -40,
     fontWeight: "bold",
   },
-  buttonContainer: {
-    width: '100%',
+  loginContainer: {
+    width: '90%',
+    backgroundColor: '#ffffff',
+    marginTop: 20,
+    borderRadius: 10,
+    padding: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  input: {
+    width: '100%', // Adjusted to be wider
+    height: 50,
+    padding: 10,
+    borderColor: '#ccc',
+    borderWidth: 2,
+    borderRadius: 5,
+    marginVertical: 13,
+  },
+  button: {
+    backgroundColor: '#ff5a00',
+    paddingVertical: 15,
     paddingHorizontal: 20,
-    marginBottom: 40,
+    borderRadius: 5,
+    marginVertical: 10,
+    alignItems: 'center',
+    width: '100%', // Make button full-width
   },
-  btn: {
-    backgroundColor: '#fff',
-    padding: 15,
-    borderRadius: 99,
-    width: '70%',
-    alignSelf: 'center',
-  },
-  btnSpacing: {
-    marginBottom: 20, 
-  },
-  btnText: {
-    textAlign: 'center',
-    color: Colors.Primary,
-    fontFamily: 'outfit_Bold',
-    fontSize: 15,
-    fontWeight: "bold",
+  buttonText: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: 'bold',
+    fontFamily:"oswald"
   },
 });
