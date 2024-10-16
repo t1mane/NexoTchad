@@ -1,5 +1,5 @@
 import { doc, setDoc } from 'firebase/firestore';
-import { FIRESTORE_DB } from './firebaseConfig';
+import { FIRESTORE_DB } from './FirebaseConfig';
 
 // Function to create user document in Firestore
 export const createUserDocument = async (user) => {

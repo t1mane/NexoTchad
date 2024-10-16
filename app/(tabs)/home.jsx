@@ -2,7 +2,7 @@ import { StatusBar } from "expo-status-bar";
 import { View, StyleSheet, ScrollView, RefreshControl } from "react-native";
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useState, useCallback, useEffect } from "react";
-import { FIRESTORE_DB, FIREBASE_AUTH } from '../../config/firebaseConfig';
+import { FIRESTORE_DB, FIREBASE_AUTH } from './../../config/FirebaseConfig';
 import { doc, getDoc } from 'firebase/firestore';
 import Header from "../../components/Home/Header";
 import Balance from "./../../components/Home/Balance";

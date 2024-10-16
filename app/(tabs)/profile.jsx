@@ -1,7 +1,7 @@
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import React from 'react';
 import { signOut } from 'firebase/auth';
-import { FIREBASE_AUTH } from './../../config/firebaseConfig';
+import { FIREBASE_AUTH } from './../../config/FirebaseConfig';
 import { useRouter } from 'expo-router';
 
 export default function Profile() {

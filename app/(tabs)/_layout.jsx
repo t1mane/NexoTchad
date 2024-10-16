@@ -21,7 +21,7 @@ export default function TabsLayout() {
         }} 
       />
       <Tabs.Screen 
-        name="recent" 
+        name="Recent" 
         options={{ 
           title: "Activities", 
           tabBarIcon: ({ color }) => <MaterialIcons name="history-toggle-off" size={24} color={color} />

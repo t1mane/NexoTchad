@@ -1,7 +1,7 @@
 import { useNavigation } from '@react-navigation/native';
 import { SafeAreaView, View, Text, Image, StyleSheet, TextInput, ActivityIndicator, TouchableOpacity, KeyboardAvoidingView, Platform } from 'react-native';
 import React, { useState } from 'react';
-import { FIREBASE_AUTH } from './../config/firebaseConfig';
+import { FIREBASE_AUTH } from './../config/FirebaseConfig';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
 import { createUserDocument } from '../config/firebaseService'; // adjust the path as necessary
 

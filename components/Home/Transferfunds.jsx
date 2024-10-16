@@ -1,6 +1,6 @@
 import { View, Text, TouchableOpacity, StyleSheet, Modal, TextInput, Alert } from 'react-native';
 import React, { useState } from 'react';
-import { FIRESTORE_DB, FIREBASE_AUTH } from './../../config/firebaseConfig'; // Ensure you import Firebase Auth
+import { FIRESTORE_DB, FIREBASE_AUTH } from './../../config/FirebaseConfig'; // Ensure you import Firebase Auth
 import { onAuthStateChanged } from 'firebase/auth';
 import { 
   collection, 
@@ -48,6 +48,12 @@ export default function Transferfunds() {
     const lowerSenderEmail = senderEmail.toLowerCase();
     const lowerReceiverEmail = email.toLowerCase();
   
+    // Check if the sender is attempting to send funds to themselves
+    if (lowerSenderEmail === lowerReceiverEmail) {
+      Alert.alert('Error', 'vous pouvez pas vous envoyer des fonds');
+      return;
+    }
+  
     try {
       const senderQuery = query(collection(FIRESTORE_DB, 'Users'), where('email', '==', lowerSenderEmail));
       const receiverQuery = query(collection(FIRESTORE_DB, 'Users'), where('email', '==', lowerReceiverEmail));
@@ -56,7 +62,7 @@ export default function Transferfunds() {
       const receiverSnapshot = await getDocs(receiverQuery);
   
       if (senderSnapshot.empty || receiverSnapshot.empty) {
-        Alert.alert('Error', 'Sender or Receiver not found');
+        Alert.alert('Error', 'envoyeur ou receveur pas trouver');
         return;
       }
   
@@ -67,7 +73,7 @@ export default function Transferfunds() {
       const receiverData = receiverDoc.data();
   
       if (senderData.balance < amountNum) {
-        Alert.alert('Insufficient Funds', 'You do not have enough balance for this transfer');
+        Alert.alert('fond insuffisent', 'vous avez pas assez de fonds pour ce transfer');
         return;
       }
   
@@ -89,8 +95,8 @@ export default function Transferfunds() {
   
       Alert.alert('Success', 'Funds transferred successfully');
       setSendModalVisible(false);
-      setAmount(''); 
-      setEmail(''); 
+      setAmount('');
+      setEmail('');
     } catch (error) {
       console.error("Transaction failed: ", error);
       Alert.alert('Error', 'There was a problem processing your transaction');

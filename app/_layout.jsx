@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
 import { Stack, useRouter } from 'expo-router';
-import { FIREBASE_AUTH } from './../config/firebaseConfig';
+import { FIREBASE_AUTH } from './../config/FirebaseConfig';
 import LoginScreen from './LoginScreen';
 import { useFonts } from 'expo-font';
 

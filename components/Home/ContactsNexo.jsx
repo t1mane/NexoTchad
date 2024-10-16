@@ -1,6 +1,6 @@
 import { View, Text, TouchableOpacity, StyleSheet, Modal, TextInput, Alert } from 'react-native';
 import React, { useState, useEffect } from 'react';
-import { FIRESTORE_DB, FIREBASE_AUTH } from '../../config/firebaseConfig';
+import { FIRESTORE_DB, FIREBASE_AUTH } from './../../config/FirebaseConfig';
 import { collection, query, where, getDocs, doc, getDoc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
 
 export default function ContactsNexo() {
