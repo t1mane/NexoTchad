@@ -1,7 +1,7 @@
 import { View, Text, TouchableOpacity, StyleSheet, Modal, TextInput, Alert } from 'react-native';
 import React, { useState, useEffect } from 'react';
 import { FIRESTORE_DB, FIREBASE_AUTH } from '../../config/firebaseConfig';
-import { collection, query, where, getDocs, doc, getDoc, updateDoc, arrayUnion } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, getDoc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
 
 export default function ContactsNexo() {
   const [modalVisible, setModalVisible] = useState(false);
@@ -39,38 +39,43 @@ export default function ContactsNexo() {
   };
 
   const handleSaveContact = async () => {
+    if (!name || !lastName || !email) {
+      Alert.alert('Error', 'All fields are required');
+      return;
+    }
+  
     const currentUser = FIREBASE_AUTH.currentUser;
     if (!currentUser) {
       Alert.alert('Error', 'User not authenticated');
       return;
     }
-
+  
     try {
       const normalizedEmail = email.trim().toLowerCase();
       const usersRef = collection(FIRESTORE_DB, 'Users');
       const q = query(usersRef, where('email', '==', normalizedEmail));
       const querySnapshot = await getDocs(q);
-
+  
       if (!querySnapshot.empty) {
         const contactDoc = querySnapshot.docs[0];
         const contactData = contactDoc.data();
         const contactId = contactDoc.id;
-
+  
         const userRef = doc(FIRESTORE_DB, 'Users', currentUser.uid);
         await updateDoc(userRef, {
           contacts: arrayUnion({
             contactId,
             name,
             lastName,
-            email: contactData.email,
+            email: normalizedEmail,  // Store email in lowercase
           }),
         });
-
+  
         setContacts((prevContacts) => [
           ...prevContacts,
-          { name, lastName, email: contactData.email },
+          { contactId, name, lastName, email: normalizedEmail }, // Store email in lowercase for the state
         ]);
-
+  
         Alert.alert('Success', 'Contact added successfully!');
         closeModal();
       } else {
@@ -79,6 +84,34 @@ export default function ContactsNexo() {
     } catch (error) {
       console.error("Error adding contact:", error);
       Alert.alert('Error', 'Unable to add contact. Please try again later.');
+    }
+  };
+  
+
+  const handleDeleteContact = async () => {
+    if (!selectedContact) return;
+
+    const currentUser = FIREBASE_AUTH.currentUser;
+    if (!currentUser) {
+      Alert.alert('Error', 'User not authenticated');
+      return;
+    }
+
+    try {
+      const userRef = doc(FIRESTORE_DB, 'Users', currentUser.uid);
+      await updateDoc(userRef, {
+        contacts: arrayRemove(selectedContact),
+      });
+
+      setContacts((prevContacts) => 
+        prevContacts.filter(contact => contact.contactId !== selectedContact.contactId)
+      );
+
+      Alert.alert('Success', 'Contact deleted successfully!');
+      closeContactModal();
+    } catch (error) {
+      console.error("Error deleting contact:", error);
+      Alert.alert('Error', 'Unable to delete contact. Please try again later.');
     }
   };
 
@@ -172,7 +205,7 @@ export default function ContactsNexo() {
                 <Text style={styles.contactDetailsText}>Prénom: {selectedContact.lastName}</Text>
                 <Text style={styles.contactDetailsText}>Email: {selectedContact.email}</Text>
 
-                {/* Transfer and Request Funds Buttons */}
+                {/* Buttons */}
                 <View style={styles.buttonContainer}>
                   <TouchableOpacity style={styles.button} onPress={() => console.log('Transfer Funds')}>
                     <Text style={styles.buttonText}>Transférer des fonds</Text>
@@ -181,6 +214,11 @@ export default function ContactsNexo() {
                     <Text style={styles.buttonText}>Demander des fonds</Text>
                   </TouchableOpacity>
                 </View>
+                
+                {/* Delete Contact Button */}
+                <TouchableOpacity style={[styles.Deletebutton, { backgroundColor: 'red' }]} onPress={handleDeleteContact}>
+                  <Text style={styles.DeletebuttonText}>Supprimer le Contact</Text>
+                </TouchableOpacity>
               </>
             )}
           </TouchableOpacity>
@@ -200,13 +238,29 @@ const styles = StyleSheet.create({
   dropdownButton: { marginTop: 10, paddingVertical: 5, paddingHorizontal: 10, backgroundColor: '#ddd', borderRadius: 5 },
   dropdownButtonText: { color: '#555', fontWeight: 'bold', textAlign: 'center', fontFamily: 'Oswald-Bold' },
   modalOverlay: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0, 0, 0, 0.5)' },
-  modalContainer: { width: 300, padding: 20, backgroundColor: 'white', borderRadius: 10, alignItems: 'center' },
+  modalContainer: { width: 350, padding: 40, backgroundColor: 'white', borderRadius: 10, alignItems: 'center' },
   modalTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 10, fontFamily: "oswald" },
   input: { width: '100%', height: 40, borderColor: '#ccc', borderWidth: 1, borderRadius: 5, paddingHorizontal: 10, marginBottom: 10, color: '#000' },
   saveButton: { backgroundColor: '#ff5a00', paddingVertical: 10, paddingHorizontal: 20, borderRadius: 5, marginTop: 10 },
   saveButtonText: { color: '#fff', fontSize: 16, fontWeight: 'bold', textAlign: 'center', fontFamily: 'oswald' },
   contactDetailsText: { fontSize: 16, marginVertical: 5, fontFamily: 'oswald' },
   buttonContainer: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 20 },
-  button: { flex: 1, backgroundColor: '#ff5a00', paddingVertical: 10, marginHorizontal: 5, borderRadius: 5, alignItems: 'center' },
-  buttonText: { color: '#fff', fontSize: 15, fontFamily: 'Oswald' }
+  button: { flex: 1, backgroundColor: '#ff5a00', paddingVertical: 15, marginHorizontal: 5, borderRadius: 5, alignItems: 'center' },
+  buttonText: { color: '#fff', fontSize: 15, fontFamily: 'Oswald' },
+  Deletebutton: {
+    backgroundColor: '#fff', // White background for delete button
+    paddingVertical: 10,
+    marginHorizontal: 5,
+    borderRadius: 5,
+    alignItems: 'center',
+    borderColor: 'red', // Optional: add a red border if desired
+    borderWidth: 1,
+    marginTop:20
+  },
+  DeletebuttonText: {
+    color: '#fff', // Red text color for delete button
+    fontSize: 15,
+    fontFamily: 'Oswald',
+    fontWeight: 'bold',
+  },
 });
