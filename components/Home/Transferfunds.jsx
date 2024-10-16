@@ -1,32 +1,102 @@
-import { View, Text, TouchableOpacity, StyleSheet, Modal, TextInput } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Modal, TextInput, Alert } from 'react-native';
 import React, { useState } from 'react';
+import { FIRESTORE_DB, FIREBASE_AUTH } from './../../config/firebaseConfig'; // Ensure you import Firebase Auth
+import { onAuthStateChanged } from 'firebase/auth';
+import { 
+  collection, 
+  getDocs, 
+  doc, 
+  runTransaction, 
+  addDoc, 
+  where, 
+  query 
+} from 'firebase/firestore';
+
+
 
 export default function Transferfunds() {
   const [sendModalVisible, setSendModalVisible] = useState(false);
-  const [requestModalVisible, setRequestModalVisible] = useState(false);
-  
-  // State variables for sending funds
   const [amount, setAmount] = useState('');
   const [email, setEmail] = useState('');
-  const [name, setName] = useState('');
-  const [lastName, setLastName] = useState('');
+  const [senderEmail, setSenderEmail] = useState(null);
+
+  // Get the current user's email when the component mounts
+  React.useEffect(() => {
+    onAuthStateChanged(FIREBASE_AUTH, (user) => {
+      if (user) {
+        setSenderEmail(user.email);
+      } else {
+        Alert.alert('Error', 'No authenticated user found.');
+      }
+    });
+  }, []);
+
+  const handleSendPress = async () => {
+    const amountNum = parseFloat(amount);
   
-  // State variables for requesting funds
-  const [requestAmount, setRequestAmount] = useState('');
-  const [requestEmail, setRequestEmail] = useState('');
-  const [requestMessage, setRequestMessage] = useState('');
-
-  const handleSendPress = () => {
-    console.log('Sending funds:', { amount, email, name, lastName });
-    setSendModalVisible(false);
-    setAmount(''); setEmail(''); setName(''); setLastName('');
+    if (isNaN(amountNum) || amountNum <= 0) {
+      Alert.alert('Invalid amount', 'Please enter a valid amount');
+      return;
+    }
+  
+    if (!senderEmail) {
+      Alert.alert('Error', 'Sender not authenticated');
+      return;
+    }
+  
+    // Convert emails to lowercase for case-insensitive comparison
+    const lowerSenderEmail = senderEmail.toLowerCase();
+    const lowerReceiverEmail = email.toLowerCase();
+  
+    try {
+      const senderQuery = query(collection(FIRESTORE_DB, 'Users'), where('email', '==', lowerSenderEmail));
+      const receiverQuery = query(collection(FIRESTORE_DB, 'Users'), where('email', '==', lowerReceiverEmail));
+  
+      const senderSnapshot = await getDocs(senderQuery);
+      const receiverSnapshot = await getDocs(receiverQuery);
+  
+      if (senderSnapshot.empty || receiverSnapshot.empty) {
+        Alert.alert('Error', 'Sender or Receiver not found');
+        return;
+      }
+  
+      const senderDoc = senderSnapshot.docs[0];
+      const receiverDoc = receiverSnapshot.docs[0];
+  
+      const senderData = senderDoc.data();
+      const receiverData = receiverDoc.data();
+  
+      if (senderData.balance < amountNum) {
+        Alert.alert('Insufficient Funds', 'You do not have enough balance for this transfer');
+        return;
+      }
+  
+      await runTransaction(FIRESTORE_DB, async (transaction) => {
+        const newSenderBalance = senderData.balance - amountNum;
+        const newReceiverBalance = receiverData.balance + amountNum;
+  
+        transaction.update(senderDoc.ref, { balance: newSenderBalance });
+        transaction.update(receiverDoc.ref, { balance: newReceiverBalance });
+      });
+  
+      await addDoc(collection(FIRESTORE_DB, 'Transactions'), {
+        amount: amountNum,
+        senderId: senderDoc.id,
+        receiverId: receiverDoc.id,
+        status: 'completed',
+        timestamp: new Date()
+      });
+  
+      Alert.alert('Success', 'Funds transferred successfully');
+      setSendModalVisible(false);
+      setAmount(''); 
+      setEmail(''); 
+    } catch (error) {
+      console.error("Transaction failed: ", error);
+      Alert.alert('Error', 'There was a problem processing your transaction');
+    }
   };
-
-  const handleRequestPress = () => {
-    console.log('Requesting funds:', { requestAmount, requestEmail, requestMessage });
-    setRequestModalVisible(false);
-    setRequestAmount(''); setRequestEmail(''); setRequestMessage('');
-  };
+  
 
   return (
     <View style={styles.outerContainer}>
@@ -35,13 +105,8 @@ export default function Transferfunds() {
         <TouchableOpacity style={styles.button} onPress={() => setSendModalVisible(true)}>
           <Text style={styles.buttonText}>Envoyer des fonds</Text>
         </TouchableOpacity>
-        
-        <TouchableOpacity style={styles.button} onPress={() => setRequestModalVisible(true)}>
-          <Text style={styles.buttonText}>Demander des fonds</Text>
-        </TouchableOpacity>
       </View>
 
-      {/* Modal for Sending Funds */}
       <Modal
         animationType="slide"
         transparent={true}
@@ -51,7 +116,7 @@ export default function Transferfunds() {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContainer}>
             <Text style={styles.modalTitle}>Envoyer des fonds</Text>
-            
+
             <TextInput
               style={styles.input}
               placeholder="Montant"
@@ -70,75 +135,10 @@ export default function Transferfunds() {
               placeholderTextColor="#888"
               color="#000"
             />
-            <TextInput
-              style={styles.input}
-              placeholder="Nom"
-              value={name}
-              onChangeText={setName}
-              placeholderTextColor="#888"
-              color="#000"
-            />
-            <TextInput
-              style={styles.input}
-              placeholder="Prénom"
-              value={lastName}
-              onChangeText={setLastName}
-              placeholderTextColor="#888"
-              color="#000"
-            />
-
             <TouchableOpacity style={styles.sendButton} onPress={handleSendPress}>
               <Text style={styles.sendButtonText}>Envoyer</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.cancelButton} onPress={() => setSendModalVisible(false)}>
-              <Text style={styles.cancelButtonText}>Annuler</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
-
-      {/* Modal for Requesting Funds */}
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={requestModalVisible}
-        onRequestClose={() => setRequestModalVisible(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContainer}>
-            <Text style={styles.modalTitle}>Demander des fonds</Text>
-            
-            <TextInput
-              style={styles.input}
-              placeholder="Montant"
-              value={requestAmount}
-              onChangeText={setRequestAmount}
-              keyboardType="numeric"
-              placeholderTextColor="#888"
-              color="#000"
-            />
-            <TextInput
-              style={styles.input}
-              placeholder="Email"
-              value={requestEmail}
-              onChangeText={setRequestEmail}
-              keyboardType="email-address"
-              placeholderTextColor="#888"
-              color="#000"
-            />
-            <TextInput
-              style={styles.input}
-              placeholder="Message"
-              value={requestMessage}
-              onChangeText={setRequestMessage}
-              placeholderTextColor="#888"
-              color="#000"
-            />
-
-            <TouchableOpacity style={styles.sendButton} onPress={handleRequestPress}>
-              <Text style={styles.sendButtonText}>Demander</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.cancelButton} onPress={() => setRequestModalVisible(false)}>
               <Text style={styles.cancelButtonText}>Annuler</Text>
             </TouchableOpacity>
           </View>
