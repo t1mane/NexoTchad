@@ -3,7 +3,7 @@ import { SafeAreaView, View, Text, Image, StyleSheet, TextInput, ActivityIndicat
 import React, { useState } from 'react';
 import { FIREBASE_AUTH } from './../config/firebaseConfig';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
-import ReactNativeAsyncStorage from '@react-native-async-storage/async-storage';
+import { createUserDocument } from '../config/firebaseService'; // adjust the path as necessary
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
@@ -32,7 +32,8 @@ export default function LoginScreen() {
     setLoading(true);
     try {
       const response = await createUserWithEmailAndPassword(FIREBASE_AUTH, email, password);
-      console.log(response);
+      // Create a Firestore document with user details
+      await createUserDocument(response.user);
       alert('Check your emails for verification');
     } catch (error) {
       console.log(error);
@@ -64,6 +65,9 @@ export default function LoginScreen() {
               placeholder='Email'
               autoCapitalize='none'
               onChangeText={(text) => setEmail(text)}
+              placeholderTextColor="#888"
+              color="#000"
+              fontFamily="oswald"
             />
             <TextInput
               secureTextEntry={true}
@@ -72,6 +76,9 @@ export default function LoginScreen() {
               placeholder='Password'
               autoCapitalize='none'
               onChangeText={(text) => setPassword(text)}
+              placeholderTextColor="#888"
+              color="#000"
+              fontFamily="oswald"
             />
             {loading ? (
               <ActivityIndicator size='large' color='#0000ff' />
@@ -113,7 +120,7 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 20,
     color: '#fff',
-    fontFamily: 'oswald-Bold',
+    fontFamily: 'Oswald-Bold',
     textAlign: 'center',
     marginTop: -40,
     fontWeight: "bold",
@@ -149,6 +156,6 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontSize: 16,
     fontWeight: 'bold',
-    fontFamily:"oswald"
+    fontFamily:"Oswald"
   },
 });

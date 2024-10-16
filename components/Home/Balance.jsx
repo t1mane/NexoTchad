@@ -1,10 +1,9 @@
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
 import React from 'react';
 import { Image } from 'react-native';
 
-export default function Balance() {
+export default function Balance({ balance }) {
   const handlePress = () => {
-    // Placeholder for navigation or action
     console.log('Balance component pressed');
   };
 
@@ -17,8 +16,12 @@ export default function Balance() {
         />
         <View style={styles.textContainer}>
           <Text style={styles.title}>Balance</Text>
-          {/* Placeholder for balance amount - replace with actual balance value */}
-          <Text style={styles.balance}>0.00</Text>
+          {/* Display balance or a loading indicator */}
+          {balance === null ? (
+            <ActivityIndicator size="small" color="#0000ff" />
+          ) : (
+            <Text style={styles.balance}>{balance.toFixed(2)}</Text>
+          )}
         </View>
       </View>
     </TouchableOpacity>
@@ -29,24 +32,24 @@ const styles = StyleSheet.create({
   outerContainer: {
     marginTop: 25,
     alignSelf: 'center',
-    width: '100%', // Adjust width as needed
+    width: '100%',
   },
   container: {
-    padding: 16,               // Add padding inside the box
-    backgroundColor: '#f9f9f9', // Light gray background color
-    borderRadius: 10,          // Rounded corners
-    borderWidth: 1,            // Border width
-    borderColor: '#ddd',       // Border color
-    flexDirection: 'row',      // Arrange children in a row
-    alignItems: 'center',      // Center items vertically
-    shadowColor: '#000',       // Shadow color
-    shadowOffset: { width: 0, height: 2 }, // Shadow offset
-    shadowOpacity: 0.3,        // Shadow opacity
-    shadowRadius: 4,           // Shadow radius
+    padding: 16,
+    backgroundColor: '#f9f9f9',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    flexDirection: 'row',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
     elevation: 3,
   },
   textContainer: {
-    marginLeft: 20,            // Add space between image and text
+    marginLeft: 20,
   },
   title: {
     fontSize: 18,
@@ -56,7 +59,7 @@ const styles = StyleSheet.create({
     fontFamily:'Oswald',
   },
   balance: {
-    fontSize: 24,              // Larger font size for balance
+    fontSize: 24,
     color: '#000',
     fontWeight: 'bold',
     fontFamily:"Oswald"

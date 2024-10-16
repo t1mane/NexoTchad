@@ -1,6 +1,9 @@
 import { StatusBar } from "expo-status-bar";
-import { Text, View, StyleSheet, ScrollView } from "react-native";
+import { View, StyleSheet, ScrollView, RefreshControl } from "react-native";
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useState, useCallback, useEffect } from "react";
+import { FIRESTORE_DB, FIREBASE_AUTH } from '../../config/firebaseConfig';
+import { doc, getDoc } from 'firebase/firestore';
 import Header from "../../components/Home/Header";
 import Balance from "./../../components/Home/Balance";
 import Transferfunds from "../../components/Home/Transferfunds";
@@ -8,10 +11,52 @@ import ContactsNexo from "../../components/Home/ContactsNexo";
 import Topup from "./../../components/Home/Topup";
 
 export default function HomeScreen() {
+  const [refreshing, setRefreshing] = useState(false);
+  const [balance, setBalance] = useState(null);
+
+  // Function to fetch the balance from Firestore
+  const fetchBalance = async () => {
+    const user = FIREBASE_AUTH.currentUser;
+    if (user) {
+      try {
+        const userDocRef = doc(FIRESTORE_DB, 'Users', user.uid);
+        const userDoc = await getDoc(userDocRef);
+        if (userDoc.exists()) {
+          setBalance(userDoc.data().balance);
+        } else {
+          console.log('No user document found!');
+        }
+      } catch (error) {
+        console.error('Error fetching balance:', error);
+      }
+    }
+  };
+
+  // Function to handle refreshing
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    fetchBalance().finally(() => {
+      setRefreshing(false);
+    });
+  }, []);
+
+  // Fetch balance when the component mounts
+  useEffect(() => {
+    fetchBalance();
+  }, []);
+
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ScrollView contentContainerStyle={styles.container}>
-
+      <ScrollView
+        contentContainerStyle={styles.container}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor="#ff5a00"
+          />
+        }
+      >
         {/* Header */}
         <Header />
 
@@ -19,9 +64,10 @@ export default function HomeScreen() {
         <View style={styles.divider} />
 
         {/* Balances */}
-        <Balance />
+        <Balance balance={balance} />
 
         {/* Divider between Balance and Transfer funds */}
+        <View style={styles.divider} />
 
         {/* Transfer funds */}
         <Transferfunds />
@@ -36,9 +82,8 @@ export default function HomeScreen() {
 
         {/* Top UP */}
         <Topup />
-
+        
       </ScrollView>
-      {/* Optionally, make the status bar translucent */}
       <StatusBar style="dark" translucent={true} />
     </SafeAreaView>
   );
@@ -47,16 +92,16 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#f9f9f9', // Adjust to match your app’s background color
+    backgroundColor: '#f9f9f9',
   },
   container: {
     padding: 20,
     marginTop: -40,
-    paddingBottom: 40, // Additional padding at the bottom for better spacing with the tab bar
+    paddingBottom: 40,
   },
   divider: {
-    borderBottomColor: '#d6d6d6',  // Light gray color for the divider
-    borderBottomWidth: 1,          // Set thickness of the line
-    marginVertical: 20,            // Space around the divider
+    borderBottomColor: '#d6d6d6',
+    borderBottomWidth: 1,
+    marginVertical: 20,
   },
 });
