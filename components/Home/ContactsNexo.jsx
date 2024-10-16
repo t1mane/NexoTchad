@@ -12,11 +12,14 @@ export default function ContactsNexo() {
   const [email, setEmail] = useState('');
   const [contacts, setContacts] = useState([]);
   const [showAllContacts, setShowAllContacts] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
 
   useEffect(() => {
     const fetchContacts = async () => {
       const currentUser = FIREBASE_AUTH.currentUser;
       if (!currentUser) return;
+
+      setCurrentUser(currentUser);
 
       try {
         const userRef = doc(FIRESTORE_DB, 'Users', currentUser.uid);
@@ -49,9 +52,16 @@ export default function ContactsNexo() {
       Alert.alert('Error', 'User not authenticated');
       return;
     }
-  
+
     try {
       const normalizedEmail = email.trim().toLowerCase();
+
+      // Prevent adding self as a contact
+      if (normalizedEmail === currentUser.email.toLowerCase()) {
+        Alert.alert('Error', 'vous pouver pas etre votre propre contact');
+        return;
+      }
+
       const usersRef = collection(FIRESTORE_DB, 'Users');
       const q = query(usersRef, where('email', '==', normalizedEmail));
       const querySnapshot = await getDocs(q);
@@ -135,6 +145,7 @@ export default function ContactsNexo() {
   const visibleContacts = showAllContacts ? contacts : contacts.slice(0, 9);
 
   return (
+
     <View style={styles.container}>
       <Text style={styles.title}>Contacts</Text>
       
