@@ -94,7 +94,8 @@ export default function HomeScreen() {
           />
         }
       >
-        <Header />
+        {/* Pass the `refreshing` state to the Header component */}
+        <Header refreshing={refreshing} />
         <View style={styles.divider} />
         <Balance balance={balance} />
         <View style={styles.divider} />

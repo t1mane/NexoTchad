@@ -1,9 +1,9 @@
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, RefreshControl } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, RefreshControl, Modal, TextInput } from 'react-native';
 import React, { useState, useEffect, useCallback } from 'react';
 import { signOut } from 'firebase/auth';
 import { FIREBASE_AUTH, FIRESTORE_DB } from './../../config/FirebaseConfig';
 import { useRouter } from 'expo-router';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function Profile() {
@@ -11,11 +11,14 @@ export default function Profile() {
   const [profileData, setProfileData] = useState(null);
   const [email, setEmail] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [fieldToEdit, setFieldToEdit] = useState('');
+  const [fieldValue, setFieldValue] = useState('');
 
   const handleLogout = async () => {
     try {
       await signOut(FIREBASE_AUTH);
-      router.replace('/LoginScreen'); // Navigate back to login screen after sign-out
+      router.replace('/LoginScreen');
     } catch (error) {
       console.error('Error logging out: ', error);
     }
@@ -53,6 +56,26 @@ export default function Profile() {
     fetchProfileData().finally(() => setRefreshing(false));
   }, []);
 
+  const openModal = (field) => {
+    setFieldToEdit(field);
+    setFieldValue(profileData[field]);
+    setIsModalVisible(true);
+  };
+
+  const handleSave = async () => {
+    const user = FIREBASE_AUTH.currentUser;
+    if (user) {
+      try {
+        const profileRef = doc(FIRESTORE_DB, "UserInformation", user.uid);
+        await updateDoc(profileRef, { [fieldToEdit]: fieldValue });
+        setProfileData((prevData) => ({ ...prevData, [fieldToEdit]: fieldValue }));
+        setIsModalVisible(false);
+      } catch (error) {
+        console.error("Error updating profile data: ", error);
+      }
+    }
+  };
+
   useEffect(() => {
     fetchProfileData();
   }, []);
@@ -73,11 +96,18 @@ export default function Profile() {
 
         {profileData ? (
           <View style={styles.profileBox}>
-            <Text style={styles.infoText}><Text style={styles.label}>Nom:</Text> {profileData.name}</Text>
-            <Text style={styles.infoText}><Text style={styles.label}>Prénom:</Text> {profileData.lastName}</Text>
+            {['name', 'lastName', 'profession'].map((field) => (
+              <View key={field} style={styles.infoRow}>
+                <Text style={styles.infoText}>
+                  <Text style={styles.label}>{field.charAt(0).toUpperCase() + field.slice(1)}:</Text> {profileData[field]}
+                </Text>
+                <TouchableOpacity onPress={() => openModal(field)} style={styles.editButton}>
+                  <Text style={styles.editButtonText}>Modifier</Text>
+                </TouchableOpacity>
+              </View>
+            ))}
             <Text style={styles.infoText}><Text style={styles.label}>Âge:</Text> {profileData.age}</Text>
             <Text style={styles.infoText}><Text style={styles.label}>Sexe:</Text> {profileData.sex}</Text>
-            <Text style={styles.infoText}><Text style={styles.label}>Profession:</Text> {profileData.profession}</Text>
             <Text style={styles.infoText}><Text style={styles.label}>Email:</Text> {email}</Text>
           </View>
         ) : (
@@ -87,6 +117,30 @@ export default function Profile() {
         <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
           <Text style={styles.logoutButtonText}>Se Déconnecter</Text>
         </TouchableOpacity>
+
+        <Modal
+          transparent={true}
+          visible={isModalVisible}
+          onRequestClose={() => setIsModalVisible(false)}
+        >
+          <View style={styles.modalContainer}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>Modifier {fieldToEdit}</Text>
+              <TextInput
+                style={styles.modalInput}
+                value={fieldValue}
+                onChangeText={setFieldValue}
+                placeholder={`Entrez le nouveau ${fieldToEdit}`}
+              />
+              <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
+                <Text style={styles.saveButtonText}>Enregistrer</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.cancelButton} onPress={() => setIsModalVisible(false)}>
+                <Text style={styles.cancelButtonText}>Annuler</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
       </ScrollView>
     </SafeAreaView>
   );
@@ -147,6 +201,88 @@ const styles = StyleSheet.create({
   logoutButtonText: {
     color: '#ffffff',
     fontSize: 16,
+    fontWeight: 'bold',
+    fontFamily: 'Oswald',
+  },
+  modalContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)', // Subtle overlay effect
+  },
+  modalContent: {
+    width: '85%',
+    backgroundColor: '#ffffff',
+    padding: 20,
+    borderRadius: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+    alignItems: 'center',
+  },
+  modalTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#333',
+    fontFamily: 'Oswald',
+    marginBottom: 15,
+  },
+  modalInput: {
+    borderColor: '#ddd',
+    borderWidth: 1,
+    borderRadius: 5,
+    width: '100%',
+    padding: 10,
+    fontSize: 18,
+    color: '#333',
+    fontFamily: 'Oswald',
+    marginBottom: 20,
+  },
+  saveButton: {
+    backgroundColor: '#28a745',
+    paddingVertical: 10,
+    borderRadius: 5,
+    alignItems: 'center',
+    width: '100%',
+    marginBottom: 10,
+  },
+  saveButtonText: {
+    color: '#ffffff',
+    fontSize: 18,
+    fontWeight: 'bold',
+    fontFamily: 'Oswald',
+  },
+  cancelButton: {
+    backgroundColor: '#ff5a00',
+    paddingVertical: 10,
+    borderRadius: 5,
+    alignItems: 'center',
+    width: '100%',
+  },
+  cancelButtonText: {
+    color: '#ffffff',
+    fontSize: 18,
+    fontWeight: 'bold',
+    fontFamily: 'Oswald',
+  },
+  infoRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  editButton: {
+    backgroundColor: '#007bff',
+    paddingVertical: 5,
+    paddingHorizontal: 12,
+    borderRadius: 5,
+    marginLeft: 10,
+  },
+  editButtonText: {
+    color: '#ffffff',
+    fontSize: 14,
     fontWeight: 'bold',
     fontFamily: 'Oswald',
   },
