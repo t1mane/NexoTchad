@@ -1,18 +1,20 @@
 import { View, Text, TouchableOpacity, StyleSheet, Modal, TextInput, Alert } from 'react-native';
 import React, { useState, useEffect } from 'react';
 import { FIRESTORE_DB, FIREBASE_AUTH } from './../../config/FirebaseConfig';
-import { collection, query, where, getDocs, doc, getDoc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, getDoc, updateDoc, arrayUnion, arrayRemove, runTransaction, addDoc } from 'firebase/firestore';
 
 export default function ContactsNexo() {
   const [modalVisible, setModalVisible] = useState(false);
   const [contactModalVisible, setContactModalVisible] = useState(false);
+  const [transferModalVisible, setTransferModalVisible] = useState(false);
   const [selectedContact, setSelectedContact] = useState(null);
   const [name, setName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [contacts, setContacts] = useState([]);
-  const [showAllContacts, setShowAllContacts] = useState(false);
-  const [currentUser, setCurrentUser] = useState(null);
+  const [amount, setAmount] = useState('');
+  const [senderEmail, setSenderEmail] = useState(null);
+  const [showAllContacts, setShowAllContacts] = useState(false); // Add showAllContacts state here
 
   useEffect(() => {
     const fetchContacts = async () => {
@@ -21,8 +23,8 @@ export default function ContactsNexo() {
         console.log('No authenticated user.');
         return;
       }
-      setCurrentUser(user);
-  
+      setSenderEmail(user.email);
+
       try {
         const userRef = doc(FIRESTORE_DB, 'Users', user.uid);
         const userDoc = await getDoc(userRef);
@@ -34,70 +36,51 @@ export default function ContactsNexo() {
         Alert.alert('Error', 'Unable to fetch contacts. Please try again later.');
       }
     };
-  
+
     fetchContacts();
-  
-    // Cleanup when component unmounts
-    return () => setCurrentUser(null);
   }, []);
-  
-  
 
   const handleAddContact = () => {
     setModalVisible(true);
   };
 
   const handleSaveContact = async () => {
-    const user = FIREBASE_AUTH.currentUser;
-if (!user) {
-  Alert.alert('Error', 'User not authenticated');
-  return;
-}
-
-    if (!name || !lastName || !email) {
-      Alert.alert('Error', 'All fields are required');
-      return;
-    }
-  
     const currentUser = FIREBASE_AUTH.currentUser;
     if (!currentUser) {
       Alert.alert('Error', 'User not authenticated');
       return;
     }
 
+    if (!name || !lastName || !email) {
+      Alert.alert('Error', 'All fields are required');
+      return;
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
+    if (normalizedEmail === currentUser.email.toLowerCase()) {
+      Alert.alert('Error', 'vous ne pouvez pas être votre propre contact');
+      return;
+    }
+
     try {
-      const normalizedEmail = email.trim().toLowerCase();
-
-      // Prevent adding self as a contact
-      if (normalizedEmail === currentUser.email.toLowerCase()) {
-        Alert.alert('Error', 'vous pouver pas etre votre propre contact');
-        return;
-      }
-
       const usersRef = collection(FIRESTORE_DB, 'Users');
       const q = query(usersRef, where('email', '==', normalizedEmail));
       const querySnapshot = await getDocs(q);
-  
+
       if (!querySnapshot.empty) {
         const contactDoc = querySnapshot.docs[0];
-        const contactData = contactDoc.data();
         const contactId = contactDoc.id;
-  
+
         const userRef = doc(FIRESTORE_DB, 'Users', currentUser.uid);
         await updateDoc(userRef, {
-          contacts: arrayUnion({
-            contactId,
-            name,
-            lastName,
-            email: normalizedEmail,  // Store email in lowercase
-          }),
+          contacts: arrayUnion({ contactId, name, lastName, email: normalizedEmail }),
         });
-  
+
         setContacts((prevContacts) => [
           ...prevContacts,
-          { contactId, name, lastName, email: normalizedEmail }, // Store email in lowercase for the state
+          { contactId, name, lastName, email: normalizedEmail },
         ]);
-  
+
         Alert.alert('Success', 'Contact added successfully!');
         closeModal();
       } else {
@@ -108,22 +91,15 @@ if (!user) {
       Alert.alert('Error', 'Unable to add contact. Please try again later.');
     }
   };
-  
 
   const handleDeleteContact = async () => {
-    const user = FIREBASE_AUTH.currentUser;
-if (!user) {
-  Alert.alert('Error', 'User not authenticated');
-  return;
-}
-
-    if (!selectedContact) return;
-
     const currentUser = FIREBASE_AUTH.currentUser;
     if (!currentUser) {
       Alert.alert('Error', 'User not authenticated');
       return;
     }
+
+    if (!selectedContact) return;
 
     try {
       const userRef = doc(FIRESTORE_DB, 'Users', currentUser.uid);
@@ -143,9 +119,64 @@ if (!user) {
     }
   };
 
-  const handleContactPress = (contact) => {
-    setSelectedContact(contact);
-    setContactModalVisible(true);
+  const handleTransferFunds = () => {
+    setContactModalVisible(false);
+    setTransferModalVisible(true);
+  };
+
+  const handleSendPress = async () => {
+    const amountNum = parseFloat(amount);
+    if (isNaN(amountNum) || amountNum <= 0) {
+      Alert.alert('Invalid amount', 'Please enter a valid amount');
+      return;
+    }
+
+    if (!senderEmail || !selectedContact) {
+      Alert.alert('Error', 'Invalid transaction information');
+      return;
+    }
+
+    try {
+      const senderQuery = query(collection(FIRESTORE_DB, 'Users'), where('email', '==', senderEmail));
+      const receiverQuery = query(collection(FIRESTORE_DB, 'Users'), where('email', '==', selectedContact.email.toLowerCase()));
+
+      const senderSnapshot = await getDocs(senderQuery);
+      const receiverSnapshot = await getDocs(receiverQuery);
+
+      if (senderSnapshot.empty || receiverSnapshot.empty) {
+        Alert.alert('Error', 'envoyeur ou receveur pas trouver');
+        return;
+      }
+
+      const senderDoc = senderSnapshot.docs[0];
+      const receiverDoc = receiverSnapshot.docs[0];
+      const senderData = senderDoc.data();
+
+      if (senderData.balance < amountNum) {
+        Alert.alert('fond insuffisent', 'vous avez pas assez de fonds pour ce transfer');
+        return;
+      }
+
+      await runTransaction(FIRESTORE_DB, async (transaction) => {
+        transaction.update(senderDoc.ref, { balance: senderData.balance - amountNum });
+        transaction.update(receiverDoc.ref, { balance: receiverDoc.data().balance + amountNum });
+      });
+
+      await addDoc(collection(FIRESTORE_DB, 'Transactions'), {
+        amount: amountNum,
+        senderId: senderDoc.id,
+        receiverId: receiverDoc.id,
+        status: 'completed',
+        timestamp: new Date()
+      });
+
+      Alert.alert('Success', 'Funds transferred successfully');
+      setTransferModalVisible(false);
+      setAmount('');
+    } catch (error) {
+      console.error("Transaction failed: ", error);
+      Alert.alert('Error', 'There was a problem processing your transaction');
+    }
   };
 
   const closeModal = () => {
@@ -160,16 +191,20 @@ if (!user) {
     setSelectedContact(null);
   };
 
+  const closeTransferModal = () => {
+    setTransferModalVisible(false);
+    setAmount('');
+  };
+
   const visibleContacts = showAllContacts ? contacts : contacts.slice(0, 9);
 
   return (
-
     <View style={styles.container}>
       <Text style={styles.title}>Contacts</Text>
       
       <View style={styles.contactsBox}>
         {visibleContacts.map((contact, index) => (
-          <TouchableOpacity key={index} style={styles.contactCircle} onPress={() => handleContactPress(contact)}>
+          <TouchableOpacity key={index} style={styles.contactCircle} onPress={() => { setSelectedContact(contact); setContactModalVisible(true); }}>
             <Text style={styles.contactText}>{contact.name[0]}{contact.lastName[0]}</Text>
           </TouchableOpacity>
         ))}
@@ -184,74 +219,64 @@ if (!user) {
       </View>
 
       {/* Modal for Creating Contact */}
-      <Modal animationType="slide" transparent={true} visible={modalVisible} onRequestClose={closeModal}>
-        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={closeModal}>
-          <TouchableOpacity style={styles.modalContainer} activeOpacity={1} onPress={() => {}}>
-            <Text style={styles.modalTitle}>Créer un Contact</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Nom"
-              value={name}
-              onChangeText={setName}
-              placeholderTextColor="#888"
-              color="#000"
-              fontFamily="oswald"
-            />
-            <TextInput
-              style={styles.input}
-              placeholder="Prénom"
-              value={lastName}
-              onChangeText={setLastName}
-              placeholderTextColor="#888"
-              color="#000"
-              fontFamily="oswald"
-            />
-            <TextInput
-              style={styles.input}
-              placeholder="Email"
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              placeholderTextColor="#888"
-              color="#000"
-              fontFamily="oswald"
-            />
-            <TouchableOpacity style={styles.saveButton} onPress={handleSaveContact}>
-              <Text style={styles.saveButtonText}>Enregistrer le Contact</Text>
-            </TouchableOpacity>
-          </TouchableOpacity>
-        </TouchableOpacity>
-      </Modal>
+      {/* Modal for Creating Contact */}
+<Modal animationType="slide" transparent={true} visible={modalVisible} onRequestClose={closeModal}>
+  <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={closeModal}>
+    <TouchableOpacity style={styles.modalContainer} activeOpacity={1} onPress={() => {}}>
+      <Text style={styles.modalTitle}>Créer un Contact</Text>
+      <TextInput style={styles.input} placeholder="Nom" value={name} onChangeText={setName} placeholderTextColor="#888" />
+      <TextInput style={styles.input} placeholder="Prénom" value={lastName} onChangeText={setLastName} placeholderTextColor="#888" />
+      <TextInput style={styles.input} placeholder="Email" value={email} onChangeText={setEmail} keyboardType="email-address" placeholderTextColor="#888" />
+      <TouchableOpacity style={styles.saveButton} onPress={handleSaveContact}>
+        <Text style={styles.saveButtonText}>Enregistrer le Contact</Text>
+      </TouchableOpacity>
+    </TouchableOpacity>
+  </TouchableOpacity>
+</Modal>
+
 
       {/* Modal for Contact Details */}
-      <Modal animationType="slide" transparent={true} visible={contactModalVisible} onRequestClose={closeContactModal}>
-        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={closeContactModal}>
-          <TouchableOpacity style={styles.modalContainer} activeOpacity={1} onPress={() => {}}>
-            {selectedContact && (
-              <>
-                <Text style={styles.modalTitle}>Détails du Contact</Text>
-                <Text style={styles.contactDetailsText}>Nom: {selectedContact.name}</Text>
-                <Text style={styles.contactDetailsText}>Prénom: {selectedContact.lastName}</Text>
-                <Text style={styles.contactDetailsText}>Email: {selectedContact.email}</Text>
+      {/* Modal for Contact Details */}
+<Modal animationType="slide" transparent={true} visible={contactModalVisible} onRequestClose={closeContactModal}>
+  <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={closeContactModal}>
+    <TouchableOpacity style={styles.modalContainer} activeOpacity={1} onPress={() => {}}>
+      {selectedContact && (
+        <>
+          <Text style={styles.modalTitle}>Détails du Contact</Text>
+          <Text style={styles.contactDetailsText}>Nom: {selectedContact.name}</Text>
+          <Text style={styles.contactDetailsText}>Prénom: {selectedContact.lastName}</Text>
+          <Text style={styles.contactDetailsText}>Email: {selectedContact.email}</Text>
 
-                {/* Buttons */}
-                <View style={styles.buttonContainer}>
-                  <TouchableOpacity style={styles.button} onPress={() => console.log('Transfer Funds')}>
-                    <Text style={styles.buttonText}>Transférer des fonds</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.button} onPress={() => console.log('Request Funds')}>
-                    <Text style={styles.buttonText}>Demander des fonds</Text>
-                  </TouchableOpacity>
-                </View>
-                
-                {/* Delete Contact Button */}
-                <TouchableOpacity style={[styles.Deletebutton, { backgroundColor: 'red' }]} onPress={handleDeleteContact}>
-                  <Text style={styles.DeletebuttonText}>Supprimer le Contact</Text>
-                </TouchableOpacity>
-              </>
-            )}
+          <View style={styles.buttonContainer}>
+            <TouchableOpacity style={styles.button} onPress={handleTransferFunds}>
+              <Text style={styles.buttonText}>Transférer des fonds</Text>
+            </TouchableOpacity>
+          </View>
+          
+          <TouchableOpacity style={[styles.Deletebutton, { backgroundColor: 'red' }]} onPress={handleDeleteContact}>
+            <Text style={styles.DeletebuttonText}>Supprimer le Contact</Text>
           </TouchableOpacity>
-        </TouchableOpacity>
+        </>
+      )}
+    </TouchableOpacity>
+  </TouchableOpacity>
+</Modal>
+
+
+      {/* Modal for Transferring Funds */}
+      <Modal animationType="slide" transparent={true} visible={transferModalVisible} onRequestClose={closeTransferModal}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <Text style={styles.modalTitle}>Envoyer des fonds à {selectedContact?.name}</Text>
+            <TextInput style={styles.input} placeholder="Montant" value={amount} onChangeText={setAmount} keyboardType="numeric" placeholderTextColor="#888" />
+            <TouchableOpacity style={styles.sendButton} onPress={handleSendPress}>
+              <Text style={styles.sendButtonText}>Envoyer</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.cancelButton} onPress={closeTransferModal}>
+              <Text style={styles.cancelButtonText}>Annuler</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
       </Modal>
     </View>
   );
@@ -276,18 +301,22 @@ const styles = StyleSheet.create({
   buttonContainer: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 20 },
   button: { flex: 1, backgroundColor: '#ff5a00', paddingVertical: 15, marginHorizontal: 5, borderRadius: 5, alignItems: 'center' },
   buttonText: { color: '#fff', fontSize: 15, fontFamily: 'Oswald' },
+  sendButton: { backgroundColor: '#ff5a00', paddingVertical: 10, borderRadius: 5, alignItems: 'center', marginTop: 10 },
+  sendButtonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
+  cancelButton: { marginTop: 15 },
+  cancelButtonText: { color: '#ff5a00', fontSize: 16, fontWeight: 'bold' },
   Deletebutton: {
-    backgroundColor: '#fff', // White background for delete button
+    backgroundColor: '#fff',
     paddingVertical: 10,
     marginHorizontal: 5,
     borderRadius: 5,
     alignItems: 'center',
-    borderColor: 'red', // Optional: add a red border if desired
+    borderColor: 'red',
     borderWidth: 1,
     marginTop:20
   },
   DeletebuttonText: {
-    color: '#fff', // Red text color for delete button
+    color: '#fff',
     fontSize: 15,
     fontFamily: 'Oswald',
     fontWeight: 'bold',
