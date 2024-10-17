@@ -16,32 +16,44 @@ export default function ContactsNexo() {
 
   useEffect(() => {
     const fetchContacts = async () => {
-      const currentUser = FIREBASE_AUTH.currentUser;
-      if (!currentUser) return;
-
-      setCurrentUser(currentUser);
-
+      const user = FIREBASE_AUTH.currentUser;
+      if (!user) {
+        console.log('No authenticated user.');
+        return;
+      }
+      setCurrentUser(user);
+  
       try {
-        const userRef = doc(FIRESTORE_DB, 'Users', currentUser.uid);
+        const userRef = doc(FIRESTORE_DB, 'Users', user.uid);
         const userDoc = await getDoc(userRef);
         if (userDoc.exists()) {
-          const userData = userDoc.data();
-          setContacts(userData.contacts || []);
+          setContacts(userDoc.data().contacts || []);
         }
       } catch (error) {
         console.error('Error fetching contacts:', error);
         Alert.alert('Error', 'Unable to fetch contacts. Please try again later.');
       }
     };
-
+  
     fetchContacts();
+  
+    // Cleanup when component unmounts
+    return () => setCurrentUser(null);
   }, []);
+  
+  
 
   const handleAddContact = () => {
     setModalVisible(true);
   };
 
   const handleSaveContact = async () => {
+    const user = FIREBASE_AUTH.currentUser;
+if (!user) {
+  Alert.alert('Error', 'User not authenticated');
+  return;
+}
+
     if (!name || !lastName || !email) {
       Alert.alert('Error', 'All fields are required');
       return;
@@ -99,6 +111,12 @@ export default function ContactsNexo() {
   
 
   const handleDeleteContact = async () => {
+    const user = FIREBASE_AUTH.currentUser;
+if (!user) {
+  Alert.alert('Error', 'User not authenticated');
+  return;
+}
+
     if (!selectedContact) return;
 
     const currentUser = FIREBASE_AUTH.currentUser;

@@ -18,9 +18,13 @@ export default function Balance({ balance }) {
           <Text style={styles.title}>Balance</Text>
           {/* Display balance or a loading indicator */}
           {balance === null ? (
+            // Show loading spinner if balance is still being fetched
             <ActivityIndicator size="small" color="#0000ff" />
           ) : (
-            <Text style={styles.balance}>{balance.toFixed(2)}</Text>
+            // Check if balance is a valid number
+            <Text style={styles.balance}>
+              {typeof balance === 'number' ? balance.toFixed(2) : 'Unavailable'}
+            </Text>
           )}
         </View>
       </View>
@@ -56,13 +60,13 @@ const styles = StyleSheet.create({
     color: '#ff5a00',
     fontWeight: 'bold',
     marginBottom: 5, 
-    fontFamily:'Oswald',
+    fontFamily: 'Oswald',
   },
   balance: {
     fontSize: 24,
     color: '#000',
     fontWeight: 'bold',
-    fontFamily:"Oswald"
+    fontFamily: "Oswald"
   },
   image1: {
     width: 50,

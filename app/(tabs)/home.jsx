@@ -4,17 +4,18 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useState, useCallback, useEffect } from "react";
 import { FIRESTORE_DB, FIREBASE_AUTH } from './../../config/FirebaseConfig';
 import { doc, getDoc } from 'firebase/firestore';
-import Header from "../../components/Home/Header";
+import Header from "./../../components/Home/Header";
 import Balance from "./../../components/Home/Balance";
-import Transferfunds from "../../components/Home/Transferfunds";
-import ContactsNexo from "../../components/Home/ContactsNexo";
+import Transferfunds from "./../../components/Home/Transferfunds";
+import ContactsNexo from "./../../components/Home/ContactsNexo";
 import Topup from "./../../components/Home/Topup";
+import ProfileModal from "./../../components/Home/ProfileModal"; // Import the modal component
 
 export default function HomeScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [balance, setBalance] = useState(null);
+  const [profileModalVisible, setProfileModalVisible] = useState(false);
 
-  // Function to fetch the balance from Firestore
   const fetchBalance = async () => {
     const user = FIREBASE_AUTH.currentUser;
     if (user) {
@@ -29,20 +30,56 @@ export default function HomeScreen() {
       } catch (error) {
         console.error('Error fetching balance:', error);
       }
+    } else {
+      console.log("No authenticated user found.");
     }
   };
 
-  // Function to handle refreshing
   const onRefresh = useCallback(() => {
-    setRefreshing(true);
-    fetchBalance().finally(() => {
-      setRefreshing(false);
-    });
+    const user = FIREBASE_AUTH.currentUser;
+    if (user) {
+      setRefreshing(true);
+      fetchBalance().finally(() => {
+        setRefreshing(false);
+      });
+    } else {
+      console.log("Cannot refresh without an authenticated user.");
+    }
   }, []);
 
-  // Fetch balance when the component mounts
   useEffect(() => {
-    fetchBalance();
+    let isSubscribed = true;
+
+    const fetchBalanceIfAuthenticated = async () => {
+      const user = FIREBASE_AUTH.currentUser;
+      if (user && isSubscribed) {
+        await fetchBalance();
+      } else {
+        console.log("No authenticated user found on component mount.");
+      }
+    };
+
+    fetchBalanceIfAuthenticated();
+
+    return () => {
+      isSubscribed = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    const checkUserProfile = async () => {
+      const user = FIREBASE_AUTH.currentUser;
+      if (user) {
+        const profileRef = doc(FIRESTORE_DB, "UserInformation", user.uid);
+        const profileSnap = await getDoc(profileRef);
+        if (!profileSnap.exists() || !profileSnap.data().name) {
+          // Show modal if profile data is missing or incomplete
+          setProfileModalVisible(true);
+        }
+      }
+    };
+
+    checkUserProfile();
   }, []);
 
   return (
@@ -57,33 +94,20 @@ export default function HomeScreen() {
           />
         }
       >
-        {/* Header */}
         <Header />
-
-        {/* Divider between Header and Balance */}
         <View style={styles.divider} />
-
-        {/* Balances */}
         <Balance balance={balance} />
-
-        {/* Divider between Balance and Transfer funds */}
         <View style={styles.divider} />
-
-        {/* Transfer funds */}
         <Transferfunds />
-
-        {/* Divider between Transfer funds and Contacts */}
         <View style={styles.divider} />
-
-        {/* Contacts */}
         <ContactsNexo />
-
         <View style={styles.divider} />
-
-        {/* Top UP */}
         <Topup />
-        
       </ScrollView>
+      <ProfileModal 
+        visible={profileModalVisible} 
+        onClose={() => setProfileModalVisible(false)} 
+      />
       <StatusBar style="dark" translucent={true} />
     </SafeAreaView>
   );

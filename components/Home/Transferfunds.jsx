@@ -22,14 +22,18 @@ export default function Transferfunds() {
 
   // Get the current user's email when the component mounts
   React.useEffect(() => {
-    onAuthStateChanged(FIREBASE_AUTH, (user) => {
+    const unsubscribe = onAuthStateChanged(FIREBASE_AUTH, (user) => {
       if (user) {
         setSenderEmail(user.email);
       } else {
+        setSenderEmail(null);
         Alert.alert('Error', 'No authenticated user found.');
       }
     });
+  
+    return () => unsubscribe(); // Unsubscribe on component unmount
   }, []);
+  
 
   const handleSendPress = async () => {
     const amountNum = parseFloat(amount);
@@ -43,6 +47,8 @@ export default function Transferfunds() {
       Alert.alert('Error', 'Sender not authenticated');
       return;
     }
+  
+  
   
     // Convert emails to lowercase for case-insensitive comparison
     const lowerSenderEmail = senderEmail.toLowerCase();
