@@ -206,6 +206,7 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: 'bold',
     marginBottom: 15,
+    fontFamily:"oswald"
   },
   input: {
     width: '100%',
@@ -229,13 +230,16 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
+    fontFamily:'oswald'
   },
   cancelButton: {
     marginTop: 15,
+    fontFamily:'oswald-bold'
   },
   cancelButtonText: {
     color: '#ff5a00',
     fontSize: 16,
     fontWeight: 'bold',
+    fontFamily:'oswald-bold'
   },
 });

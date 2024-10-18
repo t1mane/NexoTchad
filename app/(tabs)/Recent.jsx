@@ -157,15 +157,16 @@ export default function RecentScreen() {
         <ActivityIndicator size="large" color="#ff5a00" />
       ) : (
         <FlatList
-          data={transactions}
-          renderItem={renderTransaction}
-          keyExtractor={item => item.id}
-          onEndReached={fetchMoreTransactions}
-          onEndReachedThreshold={0.5}
-          refreshing={refreshing}
-          onRefresh={onRefresh}
-          ListFooterComponent={isFetchingMore ? <ActivityIndicator size="small" color="#ff5a00" /> : null}
-        />
+  data={transactions}
+  renderItem={renderTransaction}
+  keyExtractor={(item, index) => `${item.id}-${index}`}
+  onEndReached={fetchMoreTransactions}
+  onEndReachedThreshold={0.5}
+  refreshing={refreshing}
+  onRefresh={onRefresh}
+  ListFooterComponent={isFetchingMore ? <ActivityIndicator size="small" color="#ff5a00" /> : null}
+/>
+
       )}
     </SafeAreaView>
   );

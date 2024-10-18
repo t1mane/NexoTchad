@@ -4,7 +4,7 @@ import React from 'react'
 export default function notifications() {
   return (
     <View style={{
-      padding:20,
+      padding:40,
       marginTop:20
     }}>
       <Text>Welcome your notifications!</Text>

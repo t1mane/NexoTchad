@@ -120,7 +120,7 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 20,
     color: '#fff',
-    fontFamily: 'oswald-Bold',
+    fontFamily: 'Oswald-Bold',
     textAlign: 'center',
     marginTop: -40,
     fontWeight: "bold",
