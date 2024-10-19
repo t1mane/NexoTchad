@@ -1,5 +1,6 @@
 // app/(tabs)/_layout.jsx
 import { Tabs } from "expo-router";
+import { View } from 'react-native';
 import AntDesign from '@expo/vector-icons/AntDesign';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -31,7 +32,21 @@ export default function TabsLayout() {
         name="scan" 
         options={{ 
           title: "Scan", 
-          tabBarIcon: ({ color }) => <Ionicons name="scan" size={24} color={color} />
+          tabBarIcon: ({ color, size }) => (
+            <View
+              style={{
+                width: 70, // Larger width
+                height: 70, // Larger height
+                borderRadius: 35, // Make it circular
+                justifyContent: 'center',
+                alignItems: 'center',
+                backgroundColor: '#fff', // Optional background to make it stand out
+                marginBottom: 10, // Push it slightly up
+              }}
+            >
+              <AntDesign name="qrcode" size={36} color="black" />
+            </View>
+          ),
         }} 
       />
       <Tabs.Screen 

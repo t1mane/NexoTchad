@@ -10,6 +10,7 @@ export default function Profile() {
   const router = useRouter();
   const [profileData, setProfileData] = useState(null);
   const [email, setEmail] = useState(null);
+  const [accountType, setAccountType] = useState(null); // New state for account type
   const [refreshing, setRefreshing] = useState(false);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [fieldToEdit, setFieldToEdit] = useState('');
@@ -42,6 +43,7 @@ export default function Profile() {
 
         if (userSnap.exists()) {
           setEmail(userSnap.data().email);
+          setAccountType(userSnap.data().accountType); // Fetch and set the account type
         } else {
           console.log("No user data found.");
         }
@@ -109,6 +111,16 @@ export default function Profile() {
             <Text style={styles.infoText}><Text style={styles.label}>Âge:</Text> {profileData.age}</Text>
             <Text style={styles.infoText}><Text style={styles.label}>Sexe:</Text> {profileData.sex}</Text>
             <Text style={styles.infoText}><Text style={styles.label}>Email:</Text> {email}</Text>
+
+            {/* Account Type Display */}
+            {accountType && (
+              <View style={styles.accountTypeContainer}>
+                <Text style={styles.accountTypeLabel}>Type de compte:</Text>
+                <Text style={styles.accountTypeValue}>
+                  {accountType === 'personal' ? 'Compte Personnel' : 'Compte Professionnel'}
+                </Text>
+              </View>
+            )}
           </View>
         ) : (
           <Text style={styles.loadingText}>Chargement des informations...</Text>
@@ -118,6 +130,7 @@ export default function Profile() {
           <Text style={styles.logoutButtonText}>Se Déconnecter</Text>
         </TouchableOpacity>
 
+        {/* Modal for editing profile fields */}
         <Modal
           transparent={true}
           visible={isModalVisible}
@@ -203,6 +216,27 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     fontFamily: 'Oswald',
+  },
+  // Account Type Container
+  accountTypeContainer: {
+    marginTop: 20,
+    padding: 15,
+    backgroundColor: '#e0e0e0',
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  accountTypeLabel: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    fontFamily: 'Oswald',
+    color: '#ff5a00',
+  },
+  accountTypeValue: {
+    fontSize: 22, // Larger font size for account type
+    fontWeight: 'bold',
+    fontFamily: 'Oswald',
+    color: '#333',
+    marginTop: 5,
   },
   modalContainer: {
     flex: 1,
