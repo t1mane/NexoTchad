@@ -4,19 +4,25 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useState, useCallback, useEffect } from "react";
 import { FIRESTORE_DB, FIREBASE_AUTH } from './../../config/FirebaseConfig';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { useRoute, useNavigation, CommonActions } from '@react-navigation/native';
+import { BlurView } from 'expo-blur'; // Import BlurView
 import Header from "./../../components/Home/Header";
 import Balance from "./../../components/Home/Balance";
 import Transferfunds from "./../../components/Home/Transferfunds";
 import ContactsNexo from "./../../components/Home/ContactsNexo";
 import Topup from "./../../components/Home/Topup";
-import ProfileModal from "./../../components/Home/ProfileModal"; // Import the profile modal component
+import ProfileModal from "./../../components/Home/ProfileModal";
 
 export default function HomeScreen() {
+  const route = useRoute();
+  const navigation = useNavigation();
   const [refreshing, setRefreshing] = useState(false);
   const [balance, setBalance] = useState(null);
-  const [profileModalVisible, setProfileModalVisible] = useState(false); // For Profile Modal
-  const [accountTypeModalVisible, setAccountTypeModalVisible] = useState(false); // For Account Type Modal
-  const [accountType, setAccountType] = useState(null);
+  const [profileModalVisible, setProfileModalVisible] = useState(false);
+  const [accountTypeModalVisible, setAccountTypeModalVisible] = useState(false);
+  const [transferModalVisible, setTransferModalVisible] = useState(false);
+  const [transferEmail, setTransferEmail] = useState('');
+  const [transferTimestamp, setTransferTimestamp] = useState(null); // Add state for timestamp
 
   const fetchBalance = async () => {
     const user = FIREBASE_AUTH.currentUser;
@@ -32,94 +38,56 @@ export default function HomeScreen() {
       } catch (error) {
         console.error('Error fetching balance:', error);
       }
-    } else {
-      console.log("No authenticated user found.");
     }
   };
 
   const onRefresh = useCallback(() => {
-    const user = FIREBASE_AUTH.currentUser;
-    if (user) {
-      setRefreshing(true);
-      fetchBalance().finally(() => {
-        setRefreshing(false);
-      });
-    } else {
-      console.log("Cannot refresh without an authenticated user.");
-    }
+    setRefreshing(true);
+    fetchBalance().finally(() => setRefreshing(false));
   }, []);
+
+  // Show modal if email is passed and openTransferModal is true, and timestamp changes
+  useEffect(() => {
+    if (route.params?.email && route.params?.openTransferModal && route.params?.timestamp !== transferTimestamp) {
+      setTransferEmail(route.params.email);
+      setTransferModalVisible(true);
+      setTransferTimestamp(route.params.timestamp); // Update timestamp to track scans
+    }
+  }, [route.params?.email, route.params?.openTransferModal, route.params?.timestamp]);
 
   useEffect(() => {
-    let isSubscribed = true;
+    if (!transferModalVisible) {
+      setTransferEmail('');
+    }
+  }, [transferModalVisible]);
 
-    const fetchBalanceIfAuthenticated = async () => {
-      const user = FIREBASE_AUTH.currentUser;
-      if (user && isSubscribed) {
-        await fetchBalance();
-      } else {
-        console.log("No authenticated user found on component mount.");
-      }
-    };
-
-    fetchBalanceIfAuthenticated();
-
-    return () => {
-      isSubscribed = false;
-    };
+  useEffect(() => {
+    fetchBalance();
   }, []);
 
-  // Check if accountType exists and show modal if missing
   useEffect(() => {
     const checkUserAccountTypeAndProfile = async () => {
       const user = FIREBASE_AUTH.currentUser;
       if (user) {
         const userDocRef = doc(FIRESTORE_DB, "Users", user.uid);
         const userDoc = await getDoc(userDocRef);
-
         if (userDoc.exists()) {
           const userData = userDoc.data();
-
-          // Check if accountType exists
           if (!userData.accountType) {
-            setAccountTypeModalVisible(true); // Show Account Type modal first if missing
-          } else {
-            setAccountType(userData.accountType);
-            
-            // After accountType, check if profile is incomplete (e.g., name is missing)
-            const profileRef = doc(FIRESTORE_DB, "UserInformation", user.uid);
-            const profileSnap = await getDoc(profileRef);
-            if (!profileSnap.exists() || !profileSnap.data().name) {
-              setProfileModalVisible(true); // Show Profile Modal if profile info is missing
-            }
+            setAccountTypeModalVisible(true);
           }
         }
       }
     };
-
     checkUserAccountTypeAndProfile();
   }, []);
 
-  // Function to handle account type selection
   const handleAccountTypeSelection = async (type) => {
     const user = FIREBASE_AUTH.currentUser;
     if (user) {
       const userDocRef = doc(FIRESTORE_DB, 'Users', user.uid);
-      try {
-        // Update the accountType in Firestore
-        await setDoc(userDocRef, { accountType: type }, { merge: true });
-        setAccountType(type);
-        setAccountTypeModalVisible(false); // Close the Account Type Modal
-
-        // Now, check if profile modal should be shown (if profile is incomplete)
-        const profileRef = doc(FIRESTORE_DB, "UserInformation", user.uid);
-        const profileSnap = await getDoc(profileRef);
-        if (!profileSnap.exists() || !profileSnap.data().name) {
-          setProfileModalVisible(true); // Show Profile Modal if needed
-        }
-
-      } catch (error) {
-        console.error('Error updating account type:', error);
-      }
+      await setDoc(userDocRef, { accountType: type }, { merge: true });
+      setAccountTypeModalVisible(false);
     }
   };
 
@@ -127,13 +95,7 @@ export default function HomeScreen() {
     <SafeAreaView style={styles.safeArea}>
       <ScrollView
         contentContainerStyle={styles.container}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor="#ff5a00"
-          />
-        }
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#ff5a00" />}
       >
         <Header refreshing={refreshing} />
         <View style={styles.divider} />
@@ -146,38 +108,36 @@ export default function HomeScreen() {
         <Topup />
       </ScrollView>
 
-      {/* Modal to choose account type */}
-      <Modal
-        visible={accountTypeModalVisible}
-        transparent={true}
-        animationType="slide"
-      >
-        <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Veuillez sélectionner votre type de compte</Text>
-            <View style={styles.buttonContainer}>
-              <TouchableOpacity 
-                style={styles.button} 
-                onPress={() => handleAccountTypeSelection('personal')}
-              >
-                <Text style={styles.buttonText}>Compte Personnel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={styles.button} 
-                onPress={() => handleAccountTypeSelection('business')}
-              >
-                <Text style={styles.buttonText}>Compte Professionnel</Text>
-              </TouchableOpacity>
+      {/* Blur Background and Transfer Modal */}
+      {transferModalVisible && (
+        <BlurView intensity={80} tint="dark" style={StyleSheet.absoluteFill}>
+          <Modal
+            visible={transferModalVisible}
+            transparent={true}
+            animationType="fade"
+            onRequestClose={() => setTransferModalVisible(false)}
+          >
+            <View style={styles.centeredModalContainer}>
+              <View style={styles.modalContent}>
+                <Transferfunds
+                  visible={transferModalVisible}
+                  email={transferEmail}
+                  onClose={() => setTransferModalVisible(false)}
+                  onTransferSuccess={() => {
+                    setTransferModalVisible(false);
+                    navigation.dispatch(
+                      CommonActions.reset({
+                        index: 0,
+                        routes: [{ name: 'home' }],
+                      })
+                    );
+                  }}
+                />
+              </View>
             </View>
-          </View>
-        </View>
-      </Modal>
-
-      {/* Profile Modal */}
-      <ProfileModal 
-        visible={profileModalVisible} 
-        onClose={() => setProfileModalVisible(false)} 
-      />
+          </Modal>
+        </BlurView>
+      )}
 
       <StatusBar style="dark" translucent={true} />
     </SafeAreaView>
@@ -191,7 +151,6 @@ const styles = StyleSheet.create({
   },
   container: {
     padding: 20,
-    marginTop: -40,
     paddingBottom: 40,
   },
   divider: {
@@ -199,52 +158,45 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     marginVertical: 20,
   },
-  modalContainer: {
+  centeredModalContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    padding: 20,
   },
   modalContent: {
-    width: '90%',
+    width: '100%',
+    maxWidth: 350,
     backgroundColor: 'white',
-    padding: 30,
+    paddingVertical: 30,
+    paddingHorizontal: 20,
     borderRadius: 10,
-    alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: 2,
+      height: 4,
     },
-    shadowOpacity: 0.3,
-    shadowRadius: 3.84,
+    shadowOpacity: 0.25,
+    shadowRadius: 4.84,
     elevation: 5,
+    alignItems: 'center',
   },
   modalTitle: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: 'bold',
     color: '#333',
     marginBottom: 20,
     textAlign: 'center',
   },
   buttonContainer: {
-    flexDirection: 'column',  // Stack buttons vertically
+    flexDirection: 'column',
     width: '100%',
   },
   button: {
-    backgroundColor: '#ff5a00', // Same as other parts of the app
+    backgroundColor: '#ff5a00',
     paddingVertical: 12,
-    paddingHorizontal: 30,
     borderRadius: 5,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
-    marginBottom: 15, // Add margin between buttons
+    marginBottom: 15,
     alignItems: 'center',
   },
   buttonText: {

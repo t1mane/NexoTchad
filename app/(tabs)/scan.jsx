@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, TouchableOpacity, Button, StyleSheet, Alert } from 'react-native';
 import { BarCodeScanner } from 'expo-barcode-scanner';
 import { FIREBASE_AUTH, FIRESTORE_DB } from './../../config/FirebaseConfig';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, CommonActions } from '@react-navigation/native'; 
 import QRCode from 'react-native-qrcode-svg';
 import * as FileSystem from 'expo-file-system';
 import * as MediaLibrary from 'expo-media-library';
@@ -27,24 +27,30 @@ export default function Scan() {
   const handleBarCodeScanned = async ({ type, data }) => {
     setScanned(true);
     setShowCamera(false);
-
-    console.log("Scanned data:", data);
-
+  
     try {
       const userQuery = query(collection(FIRESTORE_DB, 'Users'), where('email', '==', data));
       const querySnapshot = await getDocs(userQuery);
-
+  
       if (!querySnapshot.empty) {
         const userDoc = querySnapshot.docs[0];
         const userEmail = userDoc.data().email;
-
-        navigation.navigate('Transferfunds', { email: userEmail });
+  
+        navigation.navigate('home', { 
+          email: userEmail, 
+          openTransferModal: true, 
+          timestamp: new Date().getTime()
+        });
+  
+        setScanned(false);
       } else {
-        Alert.alert('User not found', `No user associated with this QR code. Scanned data: ${data}`);
+        Alert.alert('User not found', `No user associated with this QR code.`);
+        setScanned(false); 
       }
     } catch (error) {
       console.error('Error searching for user:', error);
       Alert.alert('Error', 'There was a problem processing your request.');
+      setScanned(false);
     }
   };
 
@@ -107,16 +113,15 @@ export default function Scan() {
             <Text style={styles.buttonText}>Scan a QR Code</Text>
           </TouchableOpacity>
 
-          <Text style={styles.sectionTitle}>Generate Your QR Code</Text>
           <TouchableOpacity style={styles.generateButton} onPress={generateQRCode}>
-            <Text style={styles.buttonText}>Generate QR Code</Text>
+            <Text style={styles.buttonText}>Générer Votre Code QR</Text>
           </TouchableOpacity>
 
           {qrCodeValue && (
-            <View>
-              <QRCode value={qrCodeValue} size={200} getRef={svgRef} />
+            <View style={styles.qrContainer}>
+              <QRCode value={qrCodeValue} size={250} getRef={svgRef} />
               <TouchableOpacity style={styles.downloadButton} onPress={downloadQRCode}>
-                <Text style={styles.buttonText}>Download QR Code</Text>
+                <Text style={styles.buttonText}>Télécharger le Code QR</Text>
               </TouchableOpacity>
             </View>
           )}
@@ -125,19 +130,18 @@ export default function Scan() {
 
       {showCamera && (
         <View style={styles.cameraContainer}>
-          {/* Full screen camera */}
           <BarCodeScanner
             onBarCodeScanned={scanned ? undefined : handleBarCodeScanned}
-            style={styles.barCodeScanner} // Ensure full screen
+            style={styles.barCodeScanner} 
           />
           <TouchableOpacity style={styles.backButton} onPress={handleBackButton}>
-            <Text style={styles.buttonText}>Back</Text>
+            <Text style={styles.buttonText}>Retour</Text>
           </TouchableOpacity>
         </View>
       )}
 
       {scanned && (
-        <Button title="Tap to scan again" onPress={() => setScanned(false)} />
+        <Button title="Appuyez pour scanner à nouveau" onPress={() => setScanned(false)} />
       )}
     </View>
   );
@@ -152,14 +156,14 @@ const styles = StyleSheet.create({
   },
   cameraContainer: {
     flex: 1,
-    width: '100%', // Ensure it takes up full width
+    width: '100%',
     justifyContent: 'center',
     alignItems: 'center',
   },
   barCodeScanner: {
-    flex: 1, // Ensure it fills available space
-    width: '100%', // Ensure full width of the screen
-    aspectRatio: 1, // Adjust aspect ratio for proper scaling
+    flex: 1,
+    width: '100%',
+    aspectRatio: 1,
   },
   scanButton: {
     backgroundColor: '#ff5a00',
@@ -168,18 +172,12 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     alignItems: 'center',
     marginBottom: 20,
+    elevation: 5,
   },
   buttonText: {
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginTop: 20,
-    marginBottom: 10,
-    textAlign: 'center',
   },
   generateButton: {
     backgroundColor: '#007bff',
@@ -187,6 +185,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 30,
     borderRadius: 5,
     alignItems: 'center',
+    marginBottom: 30, // Added more space between the button and the QR code
+    elevation: 5,
   },
   downloadButton: {
     backgroundColor: '#28a745',
@@ -195,6 +195,7 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     alignItems: 'center',
     marginTop: 10,
+    elevation: 5,
   },
   backButton: {
     backgroundColor: '#ff5a00',
@@ -203,5 +204,10 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     alignItems: 'center',
     marginTop: 10,
+    elevation: 5,
+  },
+  qrContainer: {
+    alignItems: 'center',
+    marginVertical: 20, // Added margin to space out the QR code and button
   },
 });

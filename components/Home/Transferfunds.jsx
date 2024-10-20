@@ -1,19 +1,19 @@
-import { View, Text, TouchableOpacity, StyleSheet, Modal, TextInput, Alert } from 'react-native';
-import React, { useState } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, TextInput, Alert } from 'react-native';
+import React, { useState, useEffect } from 'react';
 import { FIRESTORE_DB, FIREBASE_AUTH } from './../../config/FirebaseConfig';
 import { onAuthStateChanged } from 'firebase/auth';
 import { collection, getDocs, query, where, runTransaction, addDoc } from 'firebase/firestore';
-import { useRoute } from '@react-navigation/native'; // For accessing route parameters
+import { useRoute, useNavigation } from '@react-navigation/native'; // For accessing route parameters and navigation
 
-export default function Transferfunds() {
+export default function Transferfunds({ visible, onClose, email: initialEmail, onTransferSuccess = () => {} }) {
   const route = useRoute();
-  const [sendModalVisible, setSendModalVisible] = useState(false);
+  const navigation = useNavigation();
   const [amount, setAmount] = useState('');
-  const [email, setEmail] = useState(route.params?.email || ''); // Prefill email if passed via QR code
+  const [email, setEmail] = useState(initialEmail || ''); // Initialize with the passed email
   const [senderEmail, setSenderEmail] = useState(null);
 
   // Get the current user's email when the component mounts
-  React.useEffect(() => {
+  useEffect(() => {
     const unsubscribe = onAuthStateChanged(FIREBASE_AUTH, (user) => {
       if (user) {
         setSenderEmail(user.email);
@@ -22,9 +22,15 @@ export default function Transferfunds() {
         Alert.alert('Erreur', 'Aucun utilisateur authentifié.');
       }
     });
-  
+
     return () => unsubscribe(); // Unsubscribe on component unmount
   }, []);
+
+  useEffect(() => {
+    if (route.params?.email) {
+      setEmail(route.params.email); // Update email from route params (if QR scanned)
+    }
+  }, [route.params?.email]);
 
   const handleSendPress = async () => {
     const amountNum = parseFloat(amount);
@@ -48,6 +54,7 @@ export default function Transferfunds() {
     }
 
     try {
+      // Queries to find sender and receiver in Firestore
       const senderQuery = query(collection(FIRESTORE_DB, 'Users'), where('email', '==', lowerSenderEmail));
       const receiverQuery = query(collection(FIRESTORE_DB, 'Users'), where('email', '==', lowerReceiverEmail));
 
@@ -70,6 +77,7 @@ export default function Transferfunds() {
         return;
       }
 
+      // Execute the transaction to update sender and receiver balances
       await runTransaction(FIRESTORE_DB, async (transaction) => {
         const newSenderBalance = senderData.balance - amountNum;
         const newReceiverBalance = receiverData.balance + amountNum;
@@ -78,6 +86,7 @@ export default function Transferfunds() {
         transaction.update(receiverDoc.ref, { balance: newReceiverBalance });
       });
 
+      // Record the transaction in Firestore
       await addDoc(collection(FIRESTORE_DB, 'Transactions'), {
         amount: amountNum,
         senderId: senderDoc.id,
@@ -87,11 +96,18 @@ export default function Transferfunds() {
       });
 
       Alert.alert('Succès', 'Fonds transférés avec succès.');
-      setSendModalVisible(false);
+
+      // Reset inputs after successful transfer
       setAmount('');
       setEmail('');
+
+      // Trigger the onTransferSuccess prop function (e.g., close modal and reset stack in HomeScreen)
+      if (typeof onTransferSuccess === 'function') {
+        onTransferSuccess(); // Safeguard in case onTransferSuccess is not passed
+      }
+      
     } catch (error) {
-      console.error("Transaction échouée : ", error);
+      console.error('Transaction échouée : ', error);
       Alert.alert('Erreur', 'Un problème est survenu lors du transfert de fonds.');
     }
   };
@@ -99,49 +115,33 @@ export default function Transferfunds() {
   return (
     <View style={styles.outerContainer}>
       <Text style={styles.title}>Transférer des fonds</Text>
+
+      <TextInput
+        style={styles.input}
+        placeholder="Montant"
+        value={amount}
+        onChangeText={setAmount}
+        keyboardType="numeric"
+        placeholderTextColor="#888"
+        color="#000"
+      />
+      <TextInput
+        style={styles.input}
+        placeholder="Email du destinataire"
+        value={email}
+        onChangeText={setEmail}
+        keyboardType="email-address"
+        placeholderTextColor="#888"
+        color="#000"
+      />
       <View style={styles.buttonContainer}>
-        <TouchableOpacity style={styles.button} onPress={() => setSendModalVisible(true)}>
-          <Text style={styles.buttonText}>Envoyer des fonds</Text>
+        <TouchableOpacity style={styles.sendButton} onPress={handleSendPress}>
+          <Text style={styles.sendButtonText}>Envoyer</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.cancelButton} onPress={onClose}>
+          <Text style={styles.cancelButtonText}>Annuler</Text>
         </TouchableOpacity>
       </View>
-
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={sendModalVisible}
-        onRequestClose={() => setSendModalVisible(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContainer}>
-            <Text style={styles.modalTitle}>Envoyer des fonds</Text>
-
-            <TextInput
-              style={styles.input}
-              placeholder="Montant"
-              value={amount}
-              onChangeText={setAmount}
-              keyboardType="numeric"
-              placeholderTextColor="#888"
-              color="#000"
-            />
-            <TextInput
-              style={styles.input}
-              placeholder="Email du destinataire"
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              placeholderTextColor="#888"
-              color="#000"
-            />
-            <TouchableOpacity style={styles.sendButton} onPress={handleSendPress}>
-              <Text style={styles.sendButtonText}>Envoyer</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.cancelButton} onPress={() => setSendModalVisible(false)}>
-              <Text style={styles.cancelButtonText}>Annuler</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
     </View>
   );
 }
@@ -170,30 +170,6 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     alignItems: 'center',
   },
-  buttonText: {
-    color: '#fff',
-    fontSize: 15,
-    fontFamily: 'Oswald',
-  },
-  modalOverlay: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-  },
-  modalContainer: {
-    width: 300,
-    padding: 20,
-    backgroundColor: 'white',
-    borderRadius: 10,
-    alignItems: 'center',
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 15,
-    fontFamily: 'Oswald',
-  },
   input: {
     width: '100%',
     height: 40,
@@ -216,16 +192,13 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
-    fontFamily: 'Oswald',
   },
   cancelButton: {
     marginTop: 15,
-    fontFamily: 'Oswald-Bold',
   },
   cancelButtonText: {
     color: '#ff5a00',
     fontSize: 16,
     fontWeight: 'bold',
-    fontFamily: 'Oswald-Bold',
   },
 });
