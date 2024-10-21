@@ -110,7 +110,7 @@ export default function Scan() {
       {!showCamera && (
         <View>
           <TouchableOpacity style={styles.scanButton} onPress={handleScanPress}>
-            <Text style={styles.buttonText}>Scan a QR Code</Text>
+            <Text style={styles.buttonText}>Scannez un code QR</Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.generateButton} onPress={generateQRCode}>
@@ -178,6 +178,7 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
+    fontFamily:'oswald-Bold'
   },
   generateButton: {
     backgroundColor: '#007bff',
