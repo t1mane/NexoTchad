@@ -1,6 +1,6 @@
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, Modal, TouchableWithoutFeedback } from 'react-native';
 import React, { useState } from 'react';
-import { getFirestore, doc, getDoc, updateDoc } from 'firebase/firestore';
+import { getFirestore, collection, query, where, getDocs, updateDoc, doc, getDoc, addDoc, Timestamp } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 import { firebaseApp } from './../../config/FirebaseConfig'; // Import Firebase config
 
@@ -19,19 +19,22 @@ export default function Topup({ navigation }) {
 
     setLoading(true);
     try {
-      const scratchCardRef = doc(db, 'scratch_cards', scratchCode);
-      const scratchCardSnap = await getDoc(scratchCardRef);
+      // Correct the collection name to match Firestore case-sensitive collection: Scratch_cards
+      const q = query(collection(db, 'Scratch_cards'), where('code', '==', scratchCode));
+      const querySnapshot = await getDocs(q);
 
-      if (!scratchCardSnap.exists()) {
+      if (querySnapshot.empty) {
         Alert.alert('Erreur', 'Code de recharge invalide');
       } else {
-        const scratchCardData = scratchCardSnap.data();
+        // If the code exists, process the first document (since codes are unique)
+        const docSnap = querySnapshot.docs[0];
+        const scratchCardData = docSnap.data();
 
         if (scratchCardData.used) {
           Alert.alert('Erreur', 'Ce code de recharge a déjà été utilisé.');
         } else {
           const user = auth.currentUser;
-          const userRef = doc(db, 'Users', user.uid); // 'Users' collection
+          const userRef = doc(db, 'Users', user.uid); // Make sure 'Users' is case-sensitive
           const userSnap = await getDoc(userRef);
 
           if (userSnap.exists()) {
@@ -40,7 +43,16 @@ export default function Topup({ navigation }) {
 
             // Update user's balance and mark the scratch card as used
             await updateDoc(userRef, { balance: newBalance });
-            await updateDoc(scratchCardRef, { used: true });
+            await updateDoc(docSnap.ref, { used: true }); // Update the document to mark it as used
+
+            // Record the top-up as a transaction in the 'Transactions' collection
+            await addDoc(collection(db, 'Transactions'), {
+              amount: scratchCardData.amount,
+              senderId: user.uid,  // The user's ID
+              receiverId: user.uid, // Since it's a top-up, both sender and receiver are the same
+              status: 'completed',
+              timestamp: Timestamp.now(),  // Current timestamp
+            });
 
             Alert.alert('Succès', `Votre compte a été rechargé de ${scratchCardData.amount} unités!`);
             setModalVisible(false); // Close the modal after successful top-up

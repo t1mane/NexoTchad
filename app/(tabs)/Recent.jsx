@@ -33,7 +33,11 @@ export default function RecentScreen() {
         const transactionData = transactionDoc.data();
         
         let transactionType, counterpartEmail;
-        if (transactionData.senderId === currentUser.uid) {
+        if (transactionData.senderId === transactionData.receiverId) {
+          // It's a top-up
+          transactionType = 'Recharger';
+          counterpartEmail = null; // No counterpart email for top-up
+        } else if (transactionData.senderId === currentUser.uid) {
           // Sent transaction
           transactionType = 'À';
           const receiverDocRef = doc(FIRESTORE_DB, 'Users', transactionData.receiverId);
@@ -95,7 +99,11 @@ export default function RecentScreen() {
         const transactionData = transactionDoc.data();
 
         let transactionType, counterpartEmail;
-        if (transactionData.senderId === currentUser.uid) {
+        if (transactionData.senderId === transactionData.receiverId) {
+          // It's a top-up
+          transactionType = 'Recharger';
+          counterpartEmail = null; // No counterpart email for top-up
+        } else if (transactionData.senderId === currentUser.uid) {
           transactionType = 'À';
           const receiverDocRef = doc(FIRESTORE_DB, 'Users', transactionData.receiverId);
           const receiverDoc = await getDoc(receiverDocRef);
@@ -133,10 +141,16 @@ export default function RecentScreen() {
         {item.amount}
       </Text>
 
-      <Text style={styles.transactionText}>
-        <Text style={[styles.transactionLabel, styles.orangeText]}>{item.transactionType} : </Text>
-        {item.counterpartEmail}
-      </Text>
+      {item.counterpartEmail ? (
+        <Text style={styles.transactionText}>
+          <Text style={[styles.transactionLabel, styles.orangeText]}>{item.transactionType} : </Text>
+          {item.counterpartEmail}
+        </Text>
+      ) : (
+        <Text style={styles.transactionText}>
+          <Text style={[styles.transactionLabel, styles.orangeText]}>{item.transactionType}</Text>
+        </Text>
+      )}
 
       <Text style={styles.transactionText}>
         <Text style={[styles.transactionLabel, styles.orangeText]}>Statut : </Text>
@@ -157,16 +171,15 @@ export default function RecentScreen() {
         <ActivityIndicator size="large" color="#ff5a00" />
       ) : (
         <FlatList
-  data={transactions}
-  renderItem={renderTransaction}
-  keyExtractor={(item, index) => `${item.id}-${index}`}
-  onEndReached={fetchMoreTransactions}
-  onEndReachedThreshold={0.5}
-  refreshing={refreshing}
-  onRefresh={onRefresh}
-  ListFooterComponent={isFetchingMore ? <ActivityIndicator size="small" color="#ff5a00" /> : null}
-/>
-
+          data={transactions}
+          renderItem={renderTransaction}
+          keyExtractor={(item, index) => `${item.id}-${index}`}
+          onEndReached={fetchMoreTransactions}
+          onEndReachedThreshold={0.5}
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+          ListFooterComponent={isFetchingMore ? <ActivityIndicator size="small" color="#ff5a00" /> : null}
+        />
       )}
     </SafeAreaView>
   );
