@@ -1,4 +1,4 @@
-import { View, Text, TouchableOpacity, StyleSheet, Modal, TextInput, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Modal, TextInput, Alert, ScrollView } from 'react-native';
 import React, { useState, useEffect } from 'react';
 import { FIRESTORE_DB, FIREBASE_AUTH } from './../../config/FirebaseConfig';
 import { collection, query, where, getDocs, doc, getDoc, updateDoc, arrayUnion, arrayRemove, runTransaction, addDoc } from 'firebase/firestore';
@@ -14,7 +14,7 @@ export default function ContactsNexo() {
   const [contacts, setContacts] = useState([]);
   const [amount, setAmount] = useState('');
   const [senderEmail, setSenderEmail] = useState(null);
-  const [showAllContacts, setShowAllContacts] = useState(false); // Add showAllContacts state here
+  const [showAllContacts, setShowAllContacts] = useState(false);
 
   useEffect(() => {
     const fetchContacts = async () => {
@@ -196,72 +196,100 @@ export default function ContactsNexo() {
     setAmount('');
   };
 
-  const visibleContacts = showAllContacts ? contacts : contacts.slice(0, 9);
+  const visibleContacts = showAllContacts ? contacts : contacts.slice(0, 8);
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Contacts</Text>
-      
+
       <View style={styles.contactsBox}>
-        {visibleContacts.map((contact, index) => (
-          <TouchableOpacity key={index} style={styles.contactCircle} onPress={() => { setSelectedContact(contact); setContactModalVisible(true); }}>
-            <Text style={styles.contactText}>{contact.name[0]}{contact.lastName[0]}</Text>
-          </TouchableOpacity>
-        ))}
-        {contacts.length > 9 && !showAllContacts && (
+        {/* First Row */}
+        <View style={styles.shelf}>
+          {visibleContacts.slice(0, 4).map((contact, index) => (
+            <TouchableOpacity key={index} style={styles.contactCircle} onPress={() => { setSelectedContact(contact); setContactModalVisible(true); }}>
+              <Text style={styles.contactText}>{contact.name[0]}{contact.lastName[0]}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {/* Second Row */}
+        <View style={styles.shelf}>
+          {visibleContacts.slice(4, 8).map((contact, index) => (
+            <TouchableOpacity key={index} style={styles.contactCircle} onPress={() => { setSelectedContact(contact); setContactModalVisible(true); }}>
+              <Text style={styles.contactText}>{contact.name[0]}{contact.lastName[0]}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {/* Add contact button */}
+        <TouchableOpacity style={styles.addContactCircle} onPress={handleAddContact}>
+          <Text style={styles.addText}>+</Text>
+        </TouchableOpacity>
+
+        {/* Button to show more contacts if there are more than 8 */}
+        {contacts.length > 8 && !showAllContacts && (
           <TouchableOpacity style={styles.dropdownButton} onPress={() => setShowAllContacts(true)}>
             <Text style={styles.dropdownButtonText}>Voir tous les contacts ▼</Text>
           </TouchableOpacity>
         )}
-        <TouchableOpacity style={styles.addContactCircle} onPress={handleAddContact}>
-          <Text style={styles.addText}>+</Text>
-        </TouchableOpacity>
       </View>
 
-      {/* Modal for Creating Contact */}
-      {/* Modal for Creating Contact */}
-<Modal animationType="slide" transparent={true} visible={modalVisible} onRequestClose={closeModal}>
-  <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={closeModal}>
-    <TouchableOpacity style={styles.modalContainer} activeOpacity={1} onPress={() => {}}>
-      <Text style={styles.modalTitle}>Créer un Contact</Text>
-      <TextInput style={styles.input} placeholder="Nom" value={name} onChangeText={setName} placeholderTextColor="#888" />
-      <TextInput style={styles.input} placeholder="Prénom" value={lastName} onChangeText={setLastName} placeholderTextColor="#888" />
-      <TextInput style={styles.input} placeholder="Email" value={email} onChangeText={setEmail} keyboardType="email-address" placeholderTextColor="#888" />
-      <TouchableOpacity style={styles.saveButton} onPress={handleSaveContact}>
-        <Text style={styles.saveButtonText}>Enregistrer le Contact</Text>
-      </TouchableOpacity>
-    </TouchableOpacity>
-  </TouchableOpacity>
-</Modal>
-
-
-      {/* Modal for Contact Details */}
-      {/* Modal for Contact Details */}
-<Modal animationType="slide" transparent={true} visible={contactModalVisible} onRequestClose={closeContactModal}>
-  <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={closeContactModal}>
-    <TouchableOpacity style={styles.modalContainer} activeOpacity={1} onPress={() => {}}>
-      {selectedContact && (
-        <>
-          <Text style={styles.modalTitle}>Détails du Contact</Text>
-          <Text style={styles.contactDetailsText}>Nom: {selectedContact.name}</Text>
-          <Text style={styles.contactDetailsText}>Prénom: {selectedContact.lastName}</Text>
-          <Text style={styles.contactDetailsText}>Email: {selectedContact.email}</Text>
-
-          <View style={styles.buttonContainer}>
-            <TouchableOpacity style={styles.button} onPress={handleTransferFunds}>
-              <Text style={styles.buttonText}>Transférer des fonds</Text>
-            </TouchableOpacity>
+      {/* Scrollable Section for additional contacts */}
+      {showAllContacts && (
+        <ScrollView style={styles.moreContacts}>
+          <View style={styles.shelf}>
+            {contacts.slice(8).map((contact, index) => (
+              <TouchableOpacity key={index} style={styles.contactCircle} onPress={() => { setSelectedContact(contact); setContactModalVisible(true); }}>
+                <Text style={styles.contactText}>{contact.name[0]}{contact.lastName[0]}</Text>
+              </TouchableOpacity>
+            ))}
           </View>
-          
-          <TouchableOpacity style={[styles.Deletebutton, { backgroundColor: 'red' }]} onPress={handleDeleteContact}>
-            <Text style={styles.DeletebuttonText}>Supprimer le Contact</Text>
+          <TouchableOpacity style={styles.dropdownButton} onPress={() => setShowAllContacts(false)}>
+            <Text style={styles.dropdownButtonText}>Masquer les contacts ▲</Text>
           </TouchableOpacity>
-        </>
+        </ScrollView>
       )}
-    </TouchableOpacity>
-  </TouchableOpacity>
-</Modal>
 
+      {/* Modal for Creating Contact */}
+      <Modal animationType="slide" transparent={true} visible={modalVisible} onRequestClose={closeModal}>
+        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={closeModal}>
+          <TouchableOpacity style={styles.modalContainer} activeOpacity={1} onPress={() => {}}>
+            <Text style={styles.modalTitle}>Créer un Contact</Text>
+            <TextInput style={styles.input} placeholder="Nom" value={name} onChangeText={setName} placeholderTextColor="#888" />
+            <TextInput style={styles.input} placeholder="Prénom" value={lastName} onChangeText={setLastName} placeholderTextColor="#888" />
+            <TextInput style={styles.input} placeholder="Email" value={email} onChangeText={setEmail} keyboardType="email-address" placeholderTextColor="#888" />
+            <TouchableOpacity style={styles.saveButton} onPress={handleSaveContact}>
+              <Text style={styles.saveButtonText}>Enregistrer le Contact</Text>
+            </TouchableOpacity>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* Modal for Contact Details */}
+      <Modal animationType="slide" transparent={true} visible={contactModalVisible} onRequestClose={closeContactModal}>
+        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={closeContactModal}>
+          <TouchableOpacity style={styles.modalContainer} activeOpacity={1} onPress={() => {}}>
+            {selectedContact && (
+              <>
+                <Text style={styles.modalTitle}>Détails du Contact</Text>
+                <Text style={styles.contactDetailsText}>Nom: {selectedContact.name}</Text>
+                <Text style={styles.contactDetailsText}>Prénom: {selectedContact.lastName}</Text>
+                <Text style={styles.contactDetailsText}>Email: {selectedContact.email}</Text>
+
+                <View style={styles.buttonContainer}>
+                  <TouchableOpacity style={styles.button} onPress={handleTransferFunds}>
+                    <Text style={styles.buttonText}>Transférer des fonds</Text>
+                  </TouchableOpacity>
+                </View>
+                
+                <TouchableOpacity style={[styles.Deletebutton, { backgroundColor: 'red' }]} onPress={handleDeleteContact}>
+                  <Text style={styles.DeletebuttonText}>Supprimer le Contact</Text>
+                </TouchableOpacity>
+              </>
+            )}
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
 
       {/* Modal for Transferring Funds */}
       <Modal animationType="slide" transparent={true} visible={transferModalVisible} onRequestClose={closeTransferModal}>
@@ -285,12 +313,14 @@ export default function ContactsNexo() {
 const styles = StyleSheet.create({
   container: { padding: 8, alignItems: 'flex-start' },
   title: { fontSize: 18, fontWeight: 'bold', marginBottom: 10, fontFamily: 'Oswald-Bold' },
-  contactsBox: { borderWidth: 1, borderColor: '#ccc', borderRadius: 10, padding: 10, alignItems: 'center', width: '100%' },
-  contactCircle: { width: 60, height: 60, borderRadius: 30, backgroundColor: '#ddd', justifyContent: 'center', alignItems: 'center', marginHorizontal: 10, marginBottom: 10 },
+  contactsBox: { borderWidth: 1, borderColor: '#ccc', borderRadius: 10, padding: 10, width: '100%' },
+  shelf: { flexDirection: 'row', justifyContent: 'space-around', marginBottom: 10 },
+  contactCircle: { width: 60, height: 60, borderRadius: 30, backgroundColor: '#ddd', justifyContent: 'center', alignItems: 'center', marginHorizontal: 10 },
   addContactCircle: { width: 60, height: 60, borderRadius: 30, backgroundColor: '#4caf50', justifyContent: 'center', alignItems: 'center', marginHorizontal: 10, marginBottom: 10 },
   addText: { fontSize: 20, fontWeight: 'bold', color: '#fff', fontFamily: "oswald" },
   dropdownButton: { marginTop: 10, paddingVertical: 5, paddingHorizontal: 10, backgroundColor: '#ddd', borderRadius: 5 },
   dropdownButtonText: { color: '#555', fontWeight: 'bold', textAlign: 'center', fontFamily: 'Oswald-Bold' },
+  moreContacts: { maxHeight: 200, marginTop: 10 },
   modalOverlay: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0, 0, 0, 0.5)' },
   modalContainer: { width: 350, padding: 40, backgroundColor: 'white', borderRadius: 10, alignItems: 'center' },
   modalTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 10, fontFamily: "oswald" },
