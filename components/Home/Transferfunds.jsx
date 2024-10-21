@@ -192,6 +192,7 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
+    fontFamily:"oswald"
   },
   cancelButton: {
     marginTop: 15,
@@ -200,5 +201,6 @@ const styles = StyleSheet.create({
     color: '#ff5a00',
     fontSize: 16,
     fontWeight: 'bold',
+    fontFamily:'oswald'
   },
 });

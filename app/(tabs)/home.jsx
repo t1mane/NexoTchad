@@ -15,7 +15,7 @@ import ProfileModal from "./../../components/Home/ProfileModal";
 
 export default function HomeScreen() {
   const route = useRoute();
-  const navigation = useNavigation();
+  const navigation = useNavigation(); // Add navigation hook here
   const [refreshing, setRefreshing] = useState(false);
   const [balance, setBalance] = useState(null);
   const [profileModalVisible, setProfileModalVisible] = useState(false);
@@ -99,7 +99,8 @@ export default function HomeScreen() {
       >
         <Header refreshing={refreshing} />
         <View style={styles.divider} />
-        <Balance balance={balance} />
+        {/* Pass the navigation prop to Balance */}
+        <Balance balance={balance} navigation={navigation} />
         <View style={styles.divider} />
         <Transferfunds />
         <View style={styles.divider} />
