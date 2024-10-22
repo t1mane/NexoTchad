@@ -5,7 +5,7 @@ import { useState, useCallback, useEffect } from "react";
 import { FIRESTORE_DB, FIREBASE_AUTH } from './../../config/FirebaseConfig';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { useRoute, useNavigation, CommonActions } from '@react-navigation/native';
-import { BlurView } from 'expo-blur';
+import { BlurView } from 'expo-blur'; // Import BlurView for background blur
 import Header from "./../../components/Home/Header";
 import Balance from "./../../components/Home/Balance";
 import Transferfunds from "./../../components/Home/Transferfunds";
@@ -14,7 +14,7 @@ import Topup from "./../../components/Home/Topup";
 import ProfileModal from "./../../components/Home/ProfileModal";
 
 export default function HomeScreen() {
-  const route = useRoute();
+  const route = useRoute();  // Get route for checking navigation params
   const navigation = useNavigation(); 
   const [refreshing, setRefreshing] = useState(false);
   const [balance, setBalance] = useState(null);
@@ -22,7 +22,7 @@ export default function HomeScreen() {
   const [transferEmail, setTransferEmail] = useState('');
   const [transferTimestamp, setTransferTimestamp] = useState(null);
 
-  // States for modals and user info
+  // States for user info modals
   const [userInfoModalVisible, setUserInfoModalVisible] = useState(false); // User Information modal
   const [accountTypeModalVisible, setAccountTypeModalVisible] = useState(false); // Account Type modal
   const [userInfo, setUserInfo] = useState({
@@ -33,6 +33,7 @@ export default function HomeScreen() {
     profession: ''
   });
 
+  // Fetch balance for the user
   const fetchBalance = async () => {
     const user = FIREBASE_AUTH.currentUser;
     if (user) {
@@ -59,6 +60,7 @@ export default function HomeScreen() {
     fetchBalance();
   }, []);
 
+  // Check if user needs to complete their profile (new user)
   useEffect(() => {
     const checkUserAccountTypeAndProfile = async () => {
       const user = FIREBASE_AUTH.currentUser;
@@ -68,7 +70,7 @@ export default function HomeScreen() {
         if (userDoc.exists()) {
           const userData = userDoc.data();
           
-          // Check if user information and accountType are missing
+          // If accountType is not set, prompt the user
           if (!userData.accountType) {
             const userInfoRef = doc(FIRESTORE_DB, "UserInformation", user.uid);
             const userInfoDoc = await getDoc(userInfoRef);
@@ -84,6 +86,7 @@ export default function HomeScreen() {
     checkUserAccountTypeAndProfile();
   }, []);
 
+  // Submit user information and close the modal
   const handleUserInfoSubmit = async () => {
     const { age, lastName, sexe, name, profession } = userInfo;
 
@@ -107,6 +110,7 @@ export default function HomeScreen() {
     }
   };
 
+  // Handle account type selection
   const handleAccountTypeSelection = async (type) => {
     const user = FIREBASE_AUTH.currentUser;
     if (user) {
@@ -115,6 +119,15 @@ export default function HomeScreen() {
       setAccountTypeModalVisible(false);
     }
   };
+
+  // Check if the navigation parameters include email and openTransferModal flag
+  useEffect(() => {
+    if (route.params?.email && route.params?.openTransferModal && route.params?.timestamp !== transferTimestamp) {
+      setTransferEmail(route.params.email);  // Set the email from QR code
+      setTransferModalVisible(true);  // Show transfer modal
+      setTransferTimestamp(route.params.timestamp);  // Track the timestamp to avoid multiple triggers
+    }
+  }, [route.params?.email, route.params?.openTransferModal, route.params?.timestamp]);
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -135,24 +148,55 @@ export default function HomeScreen() {
 
       {/* Unskippable User Information Modal */}
       <Modal visible={userInfoModalVisible} transparent={true} animationType="fade">
-        <BlurView intensity={100} style={StyleSheet.absoluteFill}>
-          <View style={styles.centeredModalContainer}>
-            <View style={styles.modalContent}>
-              <Text style={styles.modalTitle}>Informations Personnelles</Text>
+  <BlurView intensity={100} style={StyleSheet.absoluteFill}>
+    <View style={styles.centeredModalContainer}>
+      <View style={styles.modalContent}>
+        <Text style={styles.modalTitle}>Informations Personnelles</Text>
 
-              <TextInput style={styles.input} placeholder="Nom" value={userInfo.name} onChangeText={(text) => setUserInfo({ ...userInfo, name: text })} />
-              <TextInput style={styles.input} placeholder="Prénom" value={userInfo.lastName} onChangeText={(text) => setUserInfo({ ...userInfo, lastName: text })} />
-              <TextInput style={styles.input} placeholder="Âge" keyboardType="numeric" value={userInfo.age} onChangeText={(text) => setUserInfo({ ...userInfo, age: text })} />
-              <TextInput style={styles.input} placeholder="Sexe" value={userInfo.sexe} onChangeText={(text) => setUserInfo({ ...userInfo, sexe: text })} />
-              <TextInput style={styles.input} placeholder="Profession" value={userInfo.profession} onChangeText={(text) => setUserInfo({ ...userInfo, profession: text })} />
+        <TextInput
+          style={styles.input}
+          placeholder="Nom"
+          value={userInfo.name}
+          onChangeText={(text) => setUserInfo({ ...userInfo, name: text })}
+          placeholderTextColor="#777" // Full black placeholder text
+        />
+        <TextInput
+          style={styles.input}
+          placeholder="Prénom"
+          value={userInfo.lastName}
+          onChangeText={(text) => setUserInfo({ ...userInfo, lastName: text })}
+          placeholderTextColor="#777" // Full black placeholder text
+        />
+        <TextInput
+          style={styles.input}
+          placeholder="Âge"
+          keyboardType="numeric"
+          value={userInfo.age}
+          onChangeText={(text) => setUserInfo({ ...userInfo, age: text })}
+          placeholderTextColor="#777" // Full black placeholder text
+        />
+        <TextInput
+          style={styles.input}
+          placeholder="Sexe"
+          value={userInfo.sexe}
+          onChangeText={(text) => setUserInfo({ ...userInfo, sexe: text })}
+          placeholderTextColor="#777" // Full black placeholder text
+        />
+        <TextInput
+          style={styles.input}
+          placeholder="Profession"
+          value={userInfo.profession}
+          onChangeText={(text) => setUserInfo({ ...userInfo, profession: text })}
+          placeholderTextColor="#777" // Full black placeholder text
+        />
 
-              <TouchableOpacity style={styles.button} onPress={handleUserInfoSubmit}>
-                <Text style={styles.buttonText}>Soumettre</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </BlurView>
-      </Modal>
+        <TouchableOpacity style={styles.button} onPress={handleUserInfoSubmit}>
+          <Text style={styles.buttonText}>Soumettre</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  </BlurView>
+</Modal>
 
       {/* Unskippable Account Type Modal */}
       <Modal visible={accountTypeModalVisible} transparent={true} animationType="fade">
@@ -185,7 +229,7 @@ export default function HomeScreen() {
               <View style={styles.modalContent}>
                 <Transferfunds
                   visible={transferModalVisible}
-                  email={transferEmail}
+                  email={transferEmail}  // Prefill email from QR code
                   onClose={() => setTransferModalVisible(false)}
                   onTransferSuccess={() => {
                     setTransferModalVisible(false);
@@ -251,7 +295,7 @@ const styles = StyleSheet.create({
     color: '#333',
     marginBottom: 20,
     textAlign: 'center',
-    fontFamily:'oswald'
+    fontFamily: 'oswald',
   },
   input: {
     width: '100%',
@@ -261,6 +305,8 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     paddingHorizontal: 10,
     marginBottom: 10,
+    fontFamily:'oswald',
+    
   },
   button: {
     backgroundColor: '#ff5a00',
@@ -268,6 +314,7 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     marginBottom: 15,
     alignItems: 'center',
+  
   },
   buttonLarge: {
     backgroundColor: '#ff5a00',
@@ -281,6 +328,6 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 18,
     fontWeight: 'bold',
-    fontFamily:'oswald-bold'
+    fontFamily: 'oswald-bold',
   },
 });

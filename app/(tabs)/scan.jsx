@@ -36,10 +36,11 @@ export default function Scan() {
         const userDoc = querySnapshot.docs[0];
         const userEmail = userDoc.data().email;
   
+        // Navigate to home screen with params for email and openTransferModal
         navigation.navigate('home', { 
           email: userEmail, 
           openTransferModal: true, 
-          timestamp: new Date().getTime()
+          timestamp: new Date().getTime() // Ensures uniqueness and triggers the modal
         });
   
         setScanned(false);
@@ -186,7 +187,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 30,
     borderRadius: 5,
     alignItems: 'center',
-    marginBottom: 30, // Added more space between the button and the QR code
+    marginBottom: 30, 
     elevation: 5,
   },
   downloadButton: {
@@ -209,6 +210,6 @@ const styles = StyleSheet.create({
   },
   qrContainer: {
     alignItems: 'center',
-    marginVertical: 20, // Added margin to space out the QR code and button
+    marginVertical: 20,
   },
 });
