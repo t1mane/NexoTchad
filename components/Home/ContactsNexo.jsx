@@ -332,8 +332,8 @@ const styles = StyleSheet.create({
   button: { flex: 1, backgroundColor: '#ff5a00', paddingVertical: 15, marginHorizontal: 5, borderRadius: 5, alignItems: 'center' },
   buttonText: { color: '#fff', fontSize: 15, fontFamily: 'Oswald' },
   sendButton: { backgroundColor: '#ff5a00', paddingVertical: 10, borderRadius: 5, alignItems: 'center', marginTop: 10 },
-  sendButtonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
-  cancelButton: { marginTop: 15 },
+  sendButtonText: { color: '#fff', fontSize: 16, fontWeight: 'bold',fontFamily:'oswald' },
+  cancelButton: { marginTop: 15,fontFamily:'oswald' },
   cancelButtonText: { color: '#ff5a00', fontSize: 16, fontWeight: 'bold' },
   Deletebutton: {
     backgroundColor: '#fff',

@@ -95,7 +95,8 @@ export default function Topup({ navigation }) {
                   placeholder="Code de recharge"
                   value={scratchCode}
                   onChangeText={setScratchCode}
-                  returnKeyType="done" // To allow closing the keyboard on done
+                  returnKeyType="done"
+                  placeholderTextColor="#777"
                 />
                 <View style={styles.modalButtonContainer}>
                   <TouchableOpacity style={styles.modalButton} onPress={handleTopUpPress} disabled={loading}>
@@ -150,6 +151,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     width: '80%',
     alignItems: 'center',
+
   },
   modalTitle: {
     fontSize: 18,

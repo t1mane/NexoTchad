@@ -201,9 +201,9 @@ const styles = StyleSheet.create({
   },
   backButton: {
     backgroundColor: '#ff5a00',
-    paddingVertical: 15,
+    paddingVertical: 10,
     paddingHorizontal: 30,
-    borderRadius: 5,
+    borderRadius: 99,
     alignItems: 'center',
     marginTop: 10,
     elevation: 5,
