@@ -1,21 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, RefreshControl, Alert, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { getFirestore, collection, query, where, orderBy, limit, onSnapshot, startAfter, doc, addDoc, getDoc, getDocs } from 'firebase/firestore';
+import { getFirestore, collection, query, orderBy, onSnapshot, doc, getDoc } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 
 export default function Notifications() {
   const [notifications, setNotifications] = useState([]);
-  const [lastVisible, setLastVisible] = useState(null); // To track the last notification fetched for pagination
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [isFetchingMore, setIsFetchingMore] = useState(false); // To manage loading more data
+  const [notifiedTransactions, setNotifiedTransactions] = useState(new Set()); // Keep track of notified transaction IDs
   const [lastLoginTime, setLastLoginTime] = useState(null); // Track the last login time
   const auth = getAuth();
   const db = getFirestore();
   const currentUser = auth.currentUser;
-
-  const NOTIFICATIONS_LIMIT = 10; // Number of notifications to fetch per page
 
   // Get the user's last login time
   useEffect(() => {
@@ -33,13 +30,15 @@ export default function Notifications() {
     const transactionsQuery = query(transactionsRef, orderBy('timestamp', 'desc'));
 
     const unsubscribeTransactions = onSnapshot(transactionsQuery, async (snapshot) => {
+      const newNotifications = [];
       for (const docChange of snapshot.docChanges()) {
         if (docChange.type === 'added') { // Only handle newly added transactions
           const transaction = docChange.doc.data();
-          const { senderId, receiverId, amount, timestamp, status } = transaction;
+          const { senderId, receiverId, amount, timestamp } = transaction;
+          const transactionId = docChange.doc.id;
 
           // Check if the current user is either the sender or the receiver
-          if (currentUser.uid === senderId || currentUser.uid === receiverId) {
+          if ((currentUser.uid === senderId || currentUser.uid === receiverId) && !notifiedTransactions.has(transactionId)) {
             let message = '';
             
             // Check if it's a top-up (senderId === receiverId)
@@ -53,29 +52,33 @@ export default function Notifications() {
               message = `Vous avez reçu ${amount} crédits de ${senderEmail}.`;
             }
 
-            // Store the notification in the 'Notifications' collection
-            await addDoc(collection(db, 'Notifications'), {
-              userId: currentUser.uid,
-              senderId: senderId,
-              receiverId: receiverId,
-              amount: amount,
-              timestamp: timestamp,
-              message: message,
-              status: status, // Add transaction status if needed
-              type: senderId === receiverId ? 'top_up' : (currentUser.uid === senderId ? 'funds_sent' : 'funds_received'),
-            });
-
             // Trigger alert only if the new notification is created after the last login time
             if (lastLoginTime && timestamp.toDate() > lastLoginTime) {
-              Alert.alert('Nouvelle Notification', 'Une nouvelle transaction a été traitée.');
+              Alert.alert('Nouvelle Notification', message);
             }
+
+            // Add the notification to the local state
+            newNotifications.push({
+              id: transactionId,
+              message,
+              timestamp
+            });
+
+            // Add the transactionId to the notified set to prevent duplicate notifications
+            setNotifiedTransactions((prevNotified) => new Set(prevNotified).add(transactionId));
           }
         }
       }
+
+      // Update the state with new notifications
+      setNotifications((prevNotifications) => [...prevNotifications, ...newNotifications]);
+
+      // Stop the loading spinner
+      setLoading(false);
     });
 
     return () => unsubscribeTransactions(); // Clean up listener on unmount
-  }, [db, currentUser.uid, lastLoginTime]);
+  }, [db, currentUser.uid, lastLoginTime, notifiedTransactions]);
 
   // Fetch user email by userId from 'Users' collection
   const getUserEmail = async (userId) => {
@@ -83,74 +86,8 @@ export default function Notifications() {
     return userDoc.exists() ? userDoc.data().email : 'Email Inconnu';
   };
 
-  // Fetch the initial batch of notifications for the logged-in user
-  useEffect(() => {
-    const fetchInitialNotifications = async () => {
-      setLoading(true);
-      const notificationsRef = collection(db, 'Notifications');
-      const notificationsQuery = query(
-        notificationsRef,
-        where('userId', '==', currentUser.uid),
-        orderBy('timestamp', 'desc'),
-        limit(NOTIFICATIONS_LIMIT) // Fetch the first batch of notifications
-      );
-
-      const unsubscribeNotifications = onSnapshot(notificationsQuery, (snapshot) => {
-        if (!snapshot.empty) {
-          const newNotifications = snapshot.docs.map((doc) => ({
-            id: doc.id,
-            ...doc.data(),
-          }));
-
-          // Set last visible notification for pagination
-          const lastVisibleDoc = snapshot.docs[snapshot.docs.length - 1];
-          setLastVisible(lastVisibleDoc);
-
-          setNotifications(newNotifications);
-          setLoading(false);
-        }
-      });
-
-      return unsubscribeNotifications; // Cleanup listener on unmount
-    };
-
-    fetchInitialNotifications();
-  }, [db, currentUser.uid]);
-
-  // Fetch more notifications when the user scrolls to the bottom
-  const fetchMoreNotifications = async () => {
-    if (lastVisible && !isFetchingMore) {
-      setIsFetchingMore(true);
-      const notificationsRef = collection(db, 'Notifications');
-      const notificationsQuery = query(
-        notificationsRef,
-        where('userId', '==', currentUser.uid),
-        orderBy('timestamp', 'desc'),
-        startAfter(lastVisible), // Fetch starting after the last fetched notification
-        limit(NOTIFICATIONS_LIMIT) // Fetch the next batch of notifications
-      );
-
-      const snapshot = await getDocs(notificationsQuery);
-      if (!snapshot.empty) {
-        const moreNotifications = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
-
-        // Append new notifications to the existing ones
-        setNotifications((prevNotifications) => [...prevNotifications, ...moreNotifications]);
-
-        // Update last visible document
-        setLastVisible(snapshot.docs[snapshot.docs.length - 1]);
-      }
-      setIsFetchingMore(false);
-    }
-  };
-
   const onRefresh = () => {
     setRefreshing(true);
-    setLastVisible(null); // Reset pagination
-    setNotifications([]); // Clear current notifications
     setTimeout(() => setRefreshing(false), 1000); // Simulate refresh delay
   };
 
@@ -179,9 +116,6 @@ export default function Notifications() {
         keyExtractor={(item) => item.id}
         renderItem={renderItem}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-        onEndReached={fetchMoreNotifications} // Load more when the user scrolls to the bottom
-        onEndReachedThreshold={0.5} // Trigger fetchMore when 50% from the bottom
-        ListFooterComponent={isFetchingMore ? <ActivityIndicator size="small" color="#ff5a00" /> : null}
         ListEmptyComponent={<Text style={styles.emptyText}>Aucune Notification</Text>}
       />
     </SafeAreaView>
