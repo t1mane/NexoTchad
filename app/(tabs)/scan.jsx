@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, TouchableOpacity, Button, StyleSheet, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, Button, StyleSheet, Alert, ActivityIndicator } from 'react-native';
 import { BarCodeScanner } from 'expo-barcode-scanner';
 import { FIREBASE_AUTH, FIRESTORE_DB } from './../../config/FirebaseConfig';
-import { useNavigation, CommonActions } from '@react-navigation/native'; 
+import { useNavigation } from '@react-navigation/native'; 
 import QRCode from 'react-native-qrcode-svg';
 import * as FileSystem from 'expo-file-system';
 import * as MediaLibrary from 'expo-media-library';
@@ -13,6 +13,7 @@ export default function Scan() {
   const [scanned, setScanned] = useState(false);
   const [showCamera, setShowCamera] = useState(false);
   const [qrCodeValue, setQrCodeValue] = useState(null);
+  const [loading, setLoading] = useState(false); // Added loading state
   const svgRef = useRef(null);
   const navigation = useNavigation();
 
@@ -25,8 +26,10 @@ export default function Scan() {
   }, []);
 
   const handleBarCodeScanned = async ({ type, data }) => {
+    if (loading) return; // Prevent multiple presses while loading
     setScanned(true);
     setShowCamera(false);
+    setLoading(true); // Set loading to true when processing begins
   
     try {
       const userQuery = query(collection(FIRESTORE_DB, 'Users'), where('email', '==', data));
@@ -52,6 +55,8 @@ export default function Scan() {
       console.error('Error searching for user:', error);
       Alert.alert('Error', 'There was a problem processing your request.');
       setScanned(false);
+    } finally {
+      setLoading(false); // Set loading to false after processing ends
     }
   };
 
@@ -144,6 +149,10 @@ export default function Scan() {
       {scanned && (
         <Button title="Appuyez pour scanner à nouveau" onPress={() => setScanned(false)} />
       )}
+
+      {loading && (
+        <ActivityIndicator size="large" color="#ff5a00" style={{ marginTop: 20 }} />
+      )}
     </View>
   );
 }
@@ -179,7 +188,7 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
-    fontFamily:'oswald-Bold'
+    fontFamily: 'oswald-Bold',
   },
   generateButton: {
     backgroundColor: '#007bff',

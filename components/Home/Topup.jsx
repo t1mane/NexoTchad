@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, Modal, TouchableWithoutFeedback } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, Modal, TouchableWithoutFeedback, ActivityIndicator } from 'react-native';
 import React, { useState } from 'react';
 import { getFirestore, collection, query, where, getDocs, updateDoc, doc, getDoc, addDoc, Timestamp } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
@@ -6,7 +6,7 @@ import { firebaseApp } from './../../config/FirebaseConfig'; // Import Firebase 
 
 export default function Topup({ navigation }) {
   const [scratchCode, setScratchCode] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(false); // Loading state to handle multiple clicks
   const [modalVisible, setModalVisible] = useState(false);
   const db = getFirestore(firebaseApp);
   const auth = getAuth(firebaseApp);
@@ -17,7 +17,7 @@ export default function Topup({ navigation }) {
       return;
     }
 
-    setLoading(true);
+    setLoading(true); // Start loading
     try {
       // Correct the collection name to match Firestore case-sensitive collection: Scratch_cards
       const q = query(collection(db, 'Scratch_cards'), where('code', '==', scratchCode));
@@ -65,7 +65,7 @@ export default function Topup({ navigation }) {
       console.error('Erreur pendant la recharge :', error);
       Alert.alert('Erreur', 'Une erreur est survenue lors de la recharge.');
     }
-    setLoading(false);
+    setLoading(false); // Stop loading
   };
 
   return (
@@ -100,7 +100,11 @@ export default function Topup({ navigation }) {
                 />
                 <View style={styles.modalButtonContainer}>
                   <TouchableOpacity style={styles.modalButton} onPress={handleTopUpPress} disabled={loading}>
-                    <Text style={styles.buttonText}>Soumettre</Text>
+                    {loading ? (
+                      <ActivityIndicator size="small" color="#fff" />  /* Loading spinner */
+                    ) : (
+                      <Text style={styles.buttonText}>Soumettre</Text>
+                    )}
                   </TouchableOpacity>
                 </View>
               </View>
@@ -151,7 +155,6 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     width: '80%',
     alignItems: 'center',
-
   },
   modalTitle: {
     fontSize: 18,

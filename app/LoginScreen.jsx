@@ -1,5 +1,5 @@
 import { useNavigation } from '@react-navigation/native';
-import { SafeAreaView, View, Text, Image, StyleSheet, TextInput, ActivityIndicator, TouchableOpacity, KeyboardAvoidingView, Platform } from 'react-native';
+import { SafeAreaView, View, Text, Image, StyleSheet, TextInput, ActivityIndicator, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import React, { useState, useEffect } from 'react';
 import { FIREBASE_AUTH } from './../config/FirebaseConfig';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged } from 'firebase/auth';
@@ -11,17 +11,21 @@ export default function LoginScreen() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [isBiometricSupported, setIsBiometricSupported] = useState(false);
+  const [initializing, setInitializing] = useState(true); // To handle loading on app start
   const navigation = useNavigation();
 
   // Check if user is already signed in
   useEffect(() => {
     const checkUser = async () => {
-      onAuthStateChanged(FIREBASE_AUTH, async (user) => {
+      const unsubscribe = onAuthStateChanged(FIREBASE_AUTH, async (user) => {
         if (user) {
-          // If a user is already logged in, initiate biometric authentication
+          // If a user is already logged in, initiate biometric authentication (optional)
           await handleBiometricAuth();
         }
+        setInitializing(false); // Stop the loading state after checking
       });
+
+      return unsubscribe; // Cleanup subscription on unmount
     };
 
     checkUser();
@@ -36,8 +40,14 @@ export default function LoginScreen() {
 
   const handleBiometricAuth = async () => {
     if (!isBiometricSupported) {
+      // If biometrics are not supported, just navigate to the app
+      navigation.reset({
+        index: 0,
+        routes: [{ name: "(tabs)" }],
+      });
       return;
     }
+
     const biometricAuth = await LocalAuthentication.authenticateAsync({
       promptMessage: 'Authenticate using Face ID or Fingerprint',
     });
@@ -82,57 +92,70 @@ export default function LoginScreen() {
     }
   };
 
+  if (initializing) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#ff5a00" />
+      </View>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={{ flex: 1 }}
       >
-        <View style={styles.middleContent}>
-          <Image 
-            source={require('./../assets/images/Orange_copy 2.png')}
-            style={styles.logo}
-            resizeMode="contain"
-          />
-          <Text style={styles.subtitle}>
-            Déposez, transférez et gérez votre argent facilement
-          </Text>
-          <View style={styles.loginContainer}>
-            <TextInput
-              value={email}
-              style={styles.input}
-              placeholder='Email'
-              autoCapitalize='none'
-              onChangeText={(text) => setEmail(text)}
-              placeholderTextColor="#888"
-              color="#000"
-              fontFamily="oswald"
+        <ScrollView 
+          contentContainerStyle={{ flexGrow: 1 }} 
+          keyboardShouldPersistTaps='handled'
+        >
+          <View style={styles.middleContent}>
+            <Image 
+              source={require('./../assets/images/Orange_copy 2.png')}
+              style={styles.logo}
+              resizeMode="contain"
             />
-            <TextInput
-              secureTextEntry={true}
-              value={password}
-              style={styles.input}
-              placeholder='Password'
-              autoCapitalize='none'
-              onChangeText={(text) => setPassword(text)}
-              placeholderTextColor="#888"
-              color="#000"
-              fontFamily="oswald"
-            />
-            {loading ? (
-              <ActivityIndicator size='large' color='#0000ff' />
-            ) : (
-              <>
-                <TouchableOpacity style={styles.button} onPress={signIn}>
-                  <Text style={styles.buttonText}>Connecter-vous</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.button} onPress={signUp}>
-                  <Text style={styles.buttonText}>Creer un Compte</Text>
-                </TouchableOpacity>
-              </>
-            )}
+            <Text style={styles.subtitle}>
+              Déposez, transférez et gérez votre argent facilement
+            </Text>
+            <View style={styles.loginContainer}>
+              <TextInput
+                value={email}
+                style={styles.input}
+                placeholder='Email'
+                autoCapitalize='none'
+                onChangeText={(text) => setEmail(text)}
+                placeholderTextColor="#888"
+                color="#000"
+                fontFamily="oswald"
+              />
+              <TextInput
+                secureTextEntry={true}
+                value={password}
+                style={styles.input}
+                placeholder='Password'
+                autoCapitalize='none'
+                onChangeText={(text) => setPassword(text)}
+                placeholderTextColor="#888"
+                color="#000"
+                fontFamily="oswald"
+              />
+              {loading ? (
+                <ActivityIndicator size='large' color='#0000ff' />
+              ) : (
+                <>
+                  <TouchableOpacity style={styles.button} onPress={signIn}>
+                    <Text style={styles.buttonText}>Connecter-vous</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.button} onPress={signUp}>
+                    <Text style={styles.buttonText}>Creer un Compte</Text>
+                  </TouchableOpacity>
+                </>
+              )}
+            </View>
           </View>
-        </View>
+        </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -196,5 +219,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     fontFamily:"Oswald"
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });

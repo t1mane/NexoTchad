@@ -2,6 +2,8 @@ import { View, Text, TouchableOpacity, StyleSheet, Modal, TextInput, Alert, Scro
 import React, { useState, useEffect } from 'react';
 import { FIRESTORE_DB, FIREBASE_AUTH } from './../../config/FirebaseConfig';
 import { collection, query, where, getDocs, doc, getDoc, updateDoc, arrayUnion, arrayRemove, runTransaction, addDoc } from 'firebase/firestore';
+import { ActivityIndicator } from 'react-native';
+
 
 export default function ContactsNexo() {
   const [modalVisible, setModalVisible] = useState(false);
@@ -15,6 +17,8 @@ export default function ContactsNexo() {
   const [amount, setAmount] = useState('');
   const [senderEmail, setSenderEmail] = useState(null);
   const [showAllContacts, setShowAllContacts] = useState(false);
+  const [loading, setLoading] = useState(false); // Add this state
+
 
   useEffect(() => {
     const fetchContacts = async () => {
@@ -125,60 +129,65 @@ export default function ContactsNexo() {
   };
 
   const handleSendPress = async () => {
+    if (loading) return; // Prevent multiple clicks if loading is already true
+  
     const amountNum = parseFloat(amount);
     if (isNaN(amountNum) || amountNum <= 0) {
       Alert.alert('Invalid amount', 'Please enter a valid amount');
       return;
     }
-
+  
     if (!senderEmail || !selectedContact) {
       Alert.alert('Error', 'Invalid transaction information');
       return;
     }
-
+  
+    setLoading(true); // Disable button and show loading indicator
     try {
       const senderQuery = query(collection(FIRESTORE_DB, 'Users'), where('email', '==', senderEmail));
       const receiverQuery = query(collection(FIRESTORE_DB, 'Users'), where('email', '==', selectedContact.email.toLowerCase()));
-
+  
       const senderSnapshot = await getDocs(senderQuery);
       const receiverSnapshot = await getDocs(receiverQuery);
-
+  
       if (senderSnapshot.empty || receiverSnapshot.empty) {
-        Alert.alert('Error', 'envoyeur ou receveur pas trouver');
+        Alert.alert('Error', 'Envoyeur ou receveur pas trouvé');
         return;
       }
-
+  
       const senderDoc = senderSnapshot.docs[0];
       const receiverDoc = receiverSnapshot.docs[0];
       const senderData = senderDoc.data();
-
+  
       if (senderData.balance < amountNum) {
-        Alert.alert('fond insuffisent', 'vous avez pas assez de fonds pour ce transfer');
+        Alert.alert('Fonds insuffisants', 'Vous n\'avez pas assez de fonds pour ce transfert');
         return;
       }
-
+  
       await runTransaction(FIRESTORE_DB, async (transaction) => {
         transaction.update(senderDoc.ref, { balance: senderData.balance - amountNum });
         transaction.update(receiverDoc.ref, { balance: receiverDoc.data().balance + amountNum });
       });
-
+  
       await addDoc(collection(FIRESTORE_DB, 'Transactions'), {
         amount: amountNum,
         senderId: senderDoc.id,
         receiverId: receiverDoc.id,
         status: 'completed',
-        timestamp: new Date()
+        timestamp: new Date(),
       });
-
+  
       Alert.alert('Success', 'Funds transferred successfully');
       setTransferModalVisible(false);
       setAmount('');
     } catch (error) {
-      console.error("Transaction failed: ", error);
+      console.error('Transaction failed: ', error);
       Alert.alert('Error', 'There was a problem processing your transaction');
+    } finally {
+      setLoading(false); // Re-enable the button after processing
     }
   };
-
+  
   const closeModal = () => {
     setModalVisible(false);
     setName('');
@@ -297,9 +306,14 @@ export default function ContactsNexo() {
           <View style={styles.modalContainer}>
             <Text style={styles.modalTitle}>Envoyer des fonds à {selectedContact?.name}</Text>
             <TextInput style={styles.input} placeholder="Montant" value={amount} onChangeText={setAmount} keyboardType="numeric" placeholderTextColor="#888" />
-            <TouchableOpacity style={styles.sendButton} onPress={handleSendPress}>
-              <Text style={styles.sendButtonText}>Envoyer</Text>
-            </TouchableOpacity>
+            <TouchableOpacity style={styles.sendButton} onPress={handleSendPress} disabled={loading}>
+  {loading ? (
+    <ActivityIndicator size="small" color="#fff" />
+  ) : (
+    <Text style={styles.sendButtonText}>Envoyer</Text>
+  )}
+</TouchableOpacity>
+
             <TouchableOpacity style={styles.cancelButton} onPress={closeTransferModal}>
               <Text style={styles.cancelButtonText}>Annuler</Text>
             </TouchableOpacity>

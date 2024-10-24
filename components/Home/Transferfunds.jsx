@@ -1,4 +1,4 @@
-import { View, Text, TouchableOpacity, StyleSheet, TextInput, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, TextInput, Alert, ActivityIndicator } from 'react-native';
 import React, { useState, useEffect } from 'react';
 import { FIRESTORE_DB, FIREBASE_AUTH } from './../../config/FirebaseConfig';
 import { onAuthStateChanged } from 'firebase/auth';
@@ -11,6 +11,7 @@ export default function Transferfunds({ visible, onClose, email: initialEmail, o
   const [amount, setAmount] = useState('');
   const [email, setEmail] = useState(initialEmail || ''); // Initialize with the passed email
   const [senderEmail, setSenderEmail] = useState(null);
+  const [loading, setLoading] = useState(false); // Loading state to prevent multiple clicks
 
   // Get the current user's email when the component mounts
   useEffect(() => {
@@ -54,6 +55,8 @@ export default function Transferfunds({ visible, onClose, email: initialEmail, o
     }
 
     try {
+      setLoading(true); // Disable the button by setting loading to true
+
       // Queries to find sender and receiver in Firestore
       const senderQuery = query(collection(FIRESTORE_DB, 'Users'), where('email', '==', lowerSenderEmail));
       const receiverQuery = query(collection(FIRESTORE_DB, 'Users'), where('email', '==', lowerReceiverEmail));
@@ -109,6 +112,8 @@ export default function Transferfunds({ visible, onClose, email: initialEmail, o
     } catch (error) {
       console.error('Transaction échouée : ', error);
       Alert.alert('Erreur', 'Un problème est survenu lors du transfert de fonds.');
+    } finally {
+      setLoading(false); // Re-enable the button after the transfer is complete
     }
   };
 
@@ -135,8 +140,16 @@ export default function Transferfunds({ visible, onClose, email: initialEmail, o
         color="#000"
       />
       <View style={styles.buttonContainer}>
-        <TouchableOpacity style={styles.sendButton} onPress={handleSendPress}>
-          <Text style={styles.sendButtonText}>Envoyer</Text>
+        <TouchableOpacity 
+          style={styles.sendButton} 
+          onPress={handleSendPress} 
+          disabled={loading} // Disable button when loading
+        >
+          {loading ? (
+            <ActivityIndicator size="small" color="#fff" />
+          ) : (
+            <Text style={styles.sendButtonText}>Envoyer</Text>
+          )}
         </TouchableOpacity>
         <TouchableOpacity style={styles.cancelButton} onPress={onClose}>
           <Text style={styles.cancelButtonText}>Annuler</Text>
