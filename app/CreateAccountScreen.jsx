@@ -1,89 +1,36 @@
 import { useNavigation } from '@react-navigation/native';
 import { SafeAreaView, View, Text, Image, StyleSheet, TextInput, ActivityIndicator, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { FIREBASE_AUTH } from './../config/FirebaseConfig';
-import { signInWithEmailAndPassword, onAuthStateChanged } from 'firebase/auth';
-import * as LocalAuthentication from 'expo-local-authentication';
+import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { createUserDocument } from '../config/firebaseService'; // Make sure this function is correctly imported
 
-export default function LoginScreen() {
+export default function CreateAccountScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [isBiometricSupported, setIsBiometricSupported] = useState(false);
-  const [initializing, setInitializing] = useState(true); // To handle loading on app start
   const navigation = useNavigation();
 
-  // Check if user is already signed in
-  useEffect(() => {
-    const checkUser = async () => {
-      const unsubscribe = onAuthStateChanged(FIREBASE_AUTH, async (user) => {
-        if (user) {
-          // If a user is already logged in, initiate biometric authentication (optional)
-          await handleBiometricAuth();
-        }
-        setInitializing(false); // Stop the loading state after checking
-      });
-
-      return unsubscribe; // Cleanup subscription on unmount
-    };
-
-    checkUser();
-    checkDeviceForBiometricSupport();
-  }, []);
-
-  const checkDeviceForBiometricSupport = async () => {
-    const compatible = await LocalAuthentication.hasHardwareAsync();
-    const hasBiometrics = await LocalAuthentication.isEnrolledAsync();
-    setIsBiometricSupported(compatible && hasBiometrics);
-  };
-
-  const handleBiometricAuth = async () => {
-    if (!isBiometricSupported) {
-      // If biometrics are not supported, just navigate to the app
-      navigation.reset({
-        index: 0,
-        routes: [{ name: "(tabs)" }],
-      });
+  const signUp = async () => {
+    if (password !== confirmPassword) {
+      alert("Les mots de passe ne correspondent pas.");
       return;
     }
-
-    const biometricAuth = await LocalAuthentication.authenticateAsync({
-      promptMessage: 'Authenticate using Face ID or Fingerprint',
-    });
-
-    if (biometricAuth.success) {
-      navigation.reset({
-        index: 0,
-        routes: [{ name: "(tabs)" }],
-      });
-    } else {
-      alert('Biometric authentication failed.');
-    }
-  };
-
-  const signIn = async () => {
     setLoading(true);
     try {
-      const response = await signInWithEmailAndPassword(FIREBASE_AUTH, email, password);
-      navigation.reset({
-        index: 0,
-        routes: [{ name: "(tabs)" }],
-      });
+      const response = await createUserWithEmailAndPassword(FIREBASE_AUTH, email, password);
+      // Ensure user data is stored
+      await createUserDocument(response.user);
+      alert('Compte créé avec succès ! Veuillez vérifier votre email.');
+      navigation.navigate('LoginScreen'); // Navigate back to login after signup
     } catch (error) {
-      console.log(error);
-      alert('Sign-in failed: ' + error.message);
+      console.error(error);
+      alert('Échec de l\'inscription : ' + error.message);
     } finally {
       setLoading(false);
     }
   };
-
-  if (initializing) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#ff5a00" />
-      </View>
-    );
-  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -102,7 +49,7 @@ export default function LoginScreen() {
               resizeMode="contain"
             />
             <Text style={styles.subtitle}>
-              Déposez, transférez et gérez votre argent facilement
+              Créez votre compte pour commencer
             </Text>
             <View style={styles.loginContainer}>
               <TextInput
@@ -126,18 +73,29 @@ export default function LoginScreen() {
                 color="#000"
                 fontFamily="oswald"
               />
+              <TextInput
+                secureTextEntry={true}
+                value={confirmPassword}
+                style={styles.input}
+                placeholder="Confirmez le mot de passe"
+                autoCapitalize="none"
+                onChangeText={(text) => setConfirmPassword(text)}
+                placeholderTextColor="#888"
+                color="#000"
+                fontFamily="oswald"
+              />
               {loading ? (
                 <ActivityIndicator size="large" color="#0000ff" />
               ) : (
                 <>
-                  <TouchableOpacity style={styles.button} onPress={signIn}>
-                    <Text style={styles.buttonText}>Connecter-vous</Text>
+                  <TouchableOpacity style={styles.button} onPress={signUp}>
+                    <Text style={styles.buttonText}>Créer un Compte</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={styles.button}
-                    onPress={() => navigation.navigate('CreateAccountScreen')}
+                    onPress={() => navigation.navigate('LoginScreen')}
                   >
-                    <Text style={styles.buttonText}>Créer un Compte</Text>
+                    <Text style={styles.buttonText}>Vous avez déjà un compte ?</Text>
                   </TouchableOpacity>
                 </>
               )}
@@ -207,10 +165,5 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     fontFamily: "Oswald",
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
 });

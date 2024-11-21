@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, TouchableOpacity, Button, StyleSheet, Alert, ActivityIndicator } from 'react-native';
-import { BarCodeScanner } from 'expo-barcode-scanner';
+import { Camera } from 'expo-camera';
 import { FIREBASE_AUTH, FIRESTORE_DB } from './../../config/FirebaseConfig';
-import { useNavigation } from '@react-navigation/native'; 
+import { useNavigation } from '@react-navigation/native';
 import QRCode from 'react-native-qrcode-svg';
 import * as FileSystem from 'expo-file-system';
 import * as MediaLibrary from 'expo-media-library';
@@ -13,50 +13,57 @@ export default function Scan() {
   const [scanned, setScanned] = useState(false);
   const [showCamera, setShowCamera] = useState(false);
   const [qrCodeValue, setQrCodeValue] = useState(null);
-  const [loading, setLoading] = useState(false); // Added loading state
+  const [loading, setLoading] = useState(false);
+  const cameraRef = useRef(null);
   const svgRef = useRef(null);
   const navigation = useNavigation();
 
   useEffect(() => {
+    let isMounted = true; // Track component mounting state
     (async () => {
-      const { status } = await BarCodeScanner.requestPermissionsAsync();
-      setHasPermission(status === 'granted');
-      await MediaLibrary.requestPermissionsAsync();
+      try {
+        const { status } = await Camera.requestCameraPermissionsAsync();
+        if (isMounted) setHasPermission(status === 'granted');
+        await MediaLibrary.requestPermissionsAsync();
+      } catch (error) {
+        console.error('Error requesting permissions:', error);
+        Alert.alert('Error', 'An error occurred while requesting permissions.');
+      }
     })();
+
+    return () => {
+      isMounted = false; // Clean up on unmount
+    };
   }, []);
 
   const handleBarCodeScanned = async ({ type, data }) => {
-    if (loading) return; // Prevent multiple presses while loading
+    if (loading || scanned) return;
     setScanned(true);
     setShowCamera(false);
-    setLoading(true); // Set loading to true when processing begins
-  
+    setLoading(true);
+
     try {
       const userQuery = query(collection(FIRESTORE_DB, 'Users'), where('email', '==', data));
       const querySnapshot = await getDocs(userQuery);
-  
+
       if (!querySnapshot.empty) {
         const userDoc = querySnapshot.docs[0];
         const userEmail = userDoc.data().email;
-  
-        // Navigate to home screen with params for email and openTransferModal
-        navigation.navigate('home', { 
-          email: userEmail, 
-          openTransferModal: true, 
-          timestamp: new Date().getTime() // Ensures uniqueness and triggers the modal
+
+        navigation.navigate('home', {
+          email: userEmail,
+          openTransferModal: true,
+          timestamp: new Date().getTime(),
         });
-  
-        setScanned(false);
       } else {
         Alert.alert('User not found', `No user associated with this QR code.`);
-        setScanned(false); 
       }
     } catch (error) {
       console.error('Error searching for user:', error);
       Alert.alert('Error', 'There was a problem processing your request.');
-      setScanned(false);
     } finally {
-      setLoading(false); // Set loading to false after processing ends
+      setScanned(false);
+      setLoading(false);
     }
   };
 
@@ -106,7 +113,7 @@ export default function Scan() {
   if (hasPermission === null) {
     return <Text>Requesting camera permission...</Text>;
   }
-  
+
   if (hasPermission === false) {
     return <Text>Camera access denied.</Text>;
   }
@@ -136,9 +143,10 @@ export default function Scan() {
 
       {showCamera && (
         <View style={styles.cameraContainer}>
-          <BarCodeScanner
+          <Camera
+            ref={cameraRef}
+            style={styles.camera}
             onBarCodeScanned={scanned ? undefined : handleBarCodeScanned}
-            style={styles.barCodeScanner} 
           />
           <TouchableOpacity style={styles.backButton} onPress={handleBackButton}>
             <Text style={styles.buttonText}>Retour</Text>
@@ -170,7 +178,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  barCodeScanner: {
+  camera: {
     flex: 1,
     width: '100%',
     aspectRatio: 1,
@@ -196,7 +204,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 30,
     borderRadius: 5,
     alignItems: 'center',
-    marginBottom: 30, 
+    marginBottom: 30,
     elevation: 5,
   },
   downloadButton: {

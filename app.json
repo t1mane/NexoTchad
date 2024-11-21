@@ -12,15 +12,24 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
+      "infoPlist": {
+        "NSCameraUsageDescription": "This app requires camera access to scan barcodes.",
+         "NSFaceIDUsageDescription": "This app requires Face ID to authenticate.",
+         "NSPhotoLibraryUsageDescription": "This app requires access to your photo library.",
+        "NSPhotoLibraryAddUsageDescription": "This app requires access to add photos to your library."
+      },
       "supportsTablet": true,
-      "bundleIdentifier": "com.jsm.Nexo"
+      "bundleIdentifier": "com.jsm.Nexo",
+      "newArchEnabled": true
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#ffffff",
+        "permissions":["CAMERA","READ_EXTERNAL_STORAGE", "WRITE_EXTERNAL_STORAGE","USE_BIOMETRIC"]
       },
-      "package": "com.jsm.Nexo"
+      "package": "com.jsm.Nexo",
+      "newArchEnabled": true
     },
     "web": {
       "bundler": "metro",
@@ -29,7 +38,6 @@
     },
     "plugins": [
       "expo-router"
-      
     ],
     "experiments": {
       "typedRoutes": true
@@ -39,6 +47,6 @@
         "projectId": "3e2023ac-9a9a-4bc6-a6f5-83690f0960ee"
       }
     },
-    "scheme":"navigation-test"
+    "scheme": "navigation-test"
   }
 }
