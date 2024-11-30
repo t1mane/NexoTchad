@@ -35,87 +35,104 @@ export default function Transferfunds({ visible, onClose, email: initialEmail, o
 
   const handleSendPress = async () => {
     const amountNum = parseFloat(amount);
-
+  
     if (isNaN(amountNum) || amountNum <= 0) {
       Alert.alert('Montant invalide', 'Veuillez entrer un montant valide.');
       return;
     }
-
+  
     if (!senderEmail) {
       Alert.alert('Erreur', 'Utilisateur non authentifié.');
       return;
     }
-
+  
     const lowerSenderEmail = senderEmail.toLowerCase();
     const lowerReceiverEmail = email.toLowerCase();
-
+  
     if (lowerSenderEmail === lowerReceiverEmail) {
       Alert.alert('Erreur', 'Vous ne pouvez pas vous envoyer des fonds.');
       return;
     }
-
-    try {
-      setLoading(true); // Disable the button by setting loading to true
-
-      // Queries to find sender and receiver in Firestore
-      const senderQuery = query(collection(FIRESTORE_DB, 'Users'), where('email', '==', lowerSenderEmail));
-      const receiverQuery = query(collection(FIRESTORE_DB, 'Users'), where('email', '==', lowerReceiverEmail));
-
-      const senderSnapshot = await getDocs(senderQuery);
-      const receiverSnapshot = await getDocs(receiverQuery);
-
-      if (senderSnapshot.empty || receiverSnapshot.empty) {
-        Alert.alert('Erreur', 'Envoyeur ou receveur non trouvé.');
-        return;
-      }
-
-      const senderDoc = senderSnapshot.docs[0];
-      const receiverDoc = receiverSnapshot.docs[0];
-
-      const senderData = senderDoc.data();
-      const receiverData = receiverDoc.data();
-
-      if (senderData.balance < amountNum) {
-        Alert.alert('Fonds insuffisants', 'Vous n\'avez pas assez de fonds pour effectuer ce transfert.');
-        return;
-      }
-
-      // Execute the transaction to update sender and receiver balances
-      await runTransaction(FIRESTORE_DB, async (transaction) => {
-        const newSenderBalance = senderData.balance - amountNum;
-        const newReceiverBalance = receiverData.balance + amountNum;
-
-        transaction.update(senderDoc.ref, { balance: newSenderBalance });
-        transaction.update(receiverDoc.ref, { balance: newReceiverBalance });
-      });
-
-      // Record the transaction in Firestore
-      await addDoc(collection(FIRESTORE_DB, 'Transactions'), {
-        amount: amountNum,
-        senderId: senderDoc.id,
-        receiverId: receiverDoc.id,
-        status: 'completed',
-        timestamp: new Date(),
-      });
-
-      Alert.alert('Succès', 'Fonds transférés avec succès.');
-
-      // Reset inputs after successful transfer
-      setAmount('');
-      setEmail('');
-
-      // Trigger the onTransferSuccess prop function (e.g., close modal and reset stack in HomeScreen)
-      if (typeof onTransferSuccess === 'function') {
-        onTransferSuccess(); // Safeguard in case onTransferSuccess is not passed
-      }
-      
-    } catch (error) {
-      console.error('Transaction échouée : ', error);
-      Alert.alert('Erreur', 'Un problème est survenu lors du transfert de fonds.');
-    } finally {
-      setLoading(false); // Re-enable the button after the transfer is complete
-    }
+  
+    // Show confirmation alert before proceeding
+    Alert.alert(
+      'Confirmez votre transfert',
+      `Êtes-vous sûr de vouloir transférer ${amountNum} à ${email} ?`,
+      [
+        {
+          text: 'Annuler',
+          style: 'cancel',
+        },
+        {
+          text: 'Confirmer',
+          onPress: async () => {
+            try {
+              setLoading(true); // Disable the button by setting loading to true
+  
+              // Queries to find sender and receiver in Firestore
+              const senderQuery = query(collection(FIRESTORE_DB, 'Users'), where('email', '==', lowerSenderEmail));
+              const receiverQuery = query(collection(FIRESTORE_DB, 'Users'), where('email', '==', lowerReceiverEmail));
+  
+              const senderSnapshot = await getDocs(senderQuery);
+              const receiverSnapshot = await getDocs(receiverQuery);
+  
+              if (senderSnapshot.empty || receiverSnapshot.empty) {
+                Alert.alert('Erreur', 'Envoyeur ou receveur non trouvé.');
+                return;
+              }
+  
+              const senderDoc = senderSnapshot.docs[0];
+              const receiverDoc = receiverSnapshot.docs[0];
+  
+              const senderData = senderDoc.data();
+              const receiverData = receiverDoc.data();
+  
+              if (senderData.balance < amountNum) {
+                Alert.alert('Fonds insuffisants', 'Vous n\'avez pas assez de fonds pour effectuer ce transfert.');
+                return;
+              }
+  
+              // Execute the transaction to update sender and receiver balances
+              await runTransaction(FIRESTORE_DB, async (transaction) => {
+                const newSenderBalance = senderData.balance - amountNum;
+                const newReceiverBalance = receiverData.balance + amountNum;
+  
+                transaction.update(senderDoc.ref, { balance: newSenderBalance });
+                transaction.update(receiverDoc.ref, { balance: newReceiverBalance });
+              });
+  
+              // Record the transaction in Firestore
+              await addDoc(collection(FIRESTORE_DB, 'Transactions'), {
+                amount: amountNum,
+                senderId: senderDoc.id,
+                receiverId: receiverDoc.id,
+                status: 'completed',
+                timestamp: new Date(),
+              });
+  
+              Alert.alert('Succès', 'Fonds transférés avec succès.');
+  
+              // Reset inputs after successful transfer
+              setAmount('');
+              setEmail('');
+  
+              // Trigger the onTransferSuccess prop function (e.g., close modal and reset stack in HomeScreen)
+              if (typeof onTransferSuccess === 'function') {
+                onTransferSuccess(); // Safeguard in case onTransferSuccess is not passed
+              }
+  
+            } catch (error) {
+              console.error('Transaction échouée : ', error);
+              Alert.alert('Erreur', 'Un problème est survenu lors du transfert de fonds.');
+            } finally {
+              setLoading(false); // Re-enable the button after the transfer is complete
+            }
+          },
+        },
+      ]
+    );
   };
+  
 
   return (
     <View style={styles.outerContainer}>

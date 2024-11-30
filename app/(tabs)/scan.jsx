@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, TouchableOpacity, Button, StyleSheet, Alert, ActivityIndicator } from 'react-native';
-import { Camera } from 'expo-camera';
+import { View, Text, TouchableOpacity, Button, StyleSheet, Alert } from 'react-native';
+import { BarCodeScanner } from 'expo-barcode-scanner';
 import { FIREBASE_AUTH, FIRESTORE_DB } from './../../config/FirebaseConfig';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, CommonActions } from '@react-navigation/native'; 
 import QRCode from 'react-native-qrcode-svg';
 import * as FileSystem from 'expo-file-system';
 import * as MediaLibrary from 'expo-media-library';
@@ -13,57 +13,44 @@ export default function Scan() {
   const [scanned, setScanned] = useState(false);
   const [showCamera, setShowCamera] = useState(false);
   const [qrCodeValue, setQrCodeValue] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const cameraRef = useRef(null);
   const svgRef = useRef(null);
   const navigation = useNavigation();
 
   useEffect(() => {
-    let isMounted = true; // Track component mounting state
     (async () => {
-      try {
-        const { status } = await Camera.requestCameraPermissionsAsync();
-        if (isMounted) setHasPermission(status === 'granted');
-        await MediaLibrary.requestPermissionsAsync();
-      } catch (error) {
-        console.error('Error requesting permissions:', error);
-        Alert.alert('Error', 'An error occurred while requesting permissions.');
-      }
+      const { status } = await BarCodeScanner.requestPermissionsAsync();
+      setHasPermission(status === 'granted');
+      await MediaLibrary.requestPermissionsAsync();
     })();
-
-    return () => {
-      isMounted = false; // Clean up on unmount
-    };
   }, []);
 
   const handleBarCodeScanned = async ({ type, data }) => {
-    if (loading || scanned) return;
     setScanned(true);
     setShowCamera(false);
-    setLoading(true);
-
+  
     try {
       const userQuery = query(collection(FIRESTORE_DB, 'Users'), where('email', '==', data));
       const querySnapshot = await getDocs(userQuery);
-
+  
       if (!querySnapshot.empty) {
         const userDoc = querySnapshot.docs[0];
         const userEmail = userDoc.data().email;
-
-        navigation.navigate('home', {
-          email: userEmail,
-          openTransferModal: true,
-          timestamp: new Date().getTime(),
+  
+        navigation.navigate('home', { 
+          email: userEmail, 
+          openTransferModal: true, 
+          timestamp: new Date().getTime()
         });
+  
+        setScanned(false);
       } else {
         Alert.alert('User not found', `No user associated with this QR code.`);
+        setScanned(false); 
       }
     } catch (error) {
       console.error('Error searching for user:', error);
       Alert.alert('Error', 'There was a problem processing your request.');
-    } finally {
       setScanned(false);
-      setLoading(false);
     }
   };
 
@@ -113,7 +100,7 @@ export default function Scan() {
   if (hasPermission === null) {
     return <Text>Requesting camera permission...</Text>;
   }
-
+  
   if (hasPermission === false) {
     return <Text>Camera access denied.</Text>;
   }
@@ -143,10 +130,9 @@ export default function Scan() {
 
       {showCamera && (
         <View style={styles.cameraContainer}>
-          <Camera
-            ref={cameraRef}
-            style={styles.camera}
+          <BarCodeScanner
             onBarCodeScanned={scanned ? undefined : handleBarCodeScanned}
+            style={styles.barCodeScanner} 
           />
           <TouchableOpacity style={styles.backButton} onPress={handleBackButton}>
             <Text style={styles.buttonText}>Retour</Text>
@@ -156,10 +142,6 @@ export default function Scan() {
 
       {scanned && (
         <Button title="Appuyez pour scanner à nouveau" onPress={() => setScanned(false)} />
-      )}
-
-      {loading && (
-        <ActivityIndicator size="large" color="#ff5a00" style={{ marginTop: 20 }} />
       )}
     </View>
   );
@@ -178,7 +160,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  camera: {
+  barCodeScanner: {
     flex: 1,
     width: '100%',
     aspectRatio: 1,
@@ -196,7 +178,7 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
-    fontFamily: 'oswald-Bold',
+    fontFamily:'oswald-Bold'
   },
   generateButton: {
     backgroundColor: '#007bff',
@@ -204,7 +186,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 30,
     borderRadius: 5,
     alignItems: 'center',
-    marginBottom: 30,
+    marginBottom: 30, // Added more space between the button and the QR code
     elevation: 5,
   },
   downloadButton: {
@@ -218,15 +200,15 @@ const styles = StyleSheet.create({
   },
   backButton: {
     backgroundColor: '#ff5a00',
-    paddingVertical: 10,
+    paddingVertical: 15,
     paddingHorizontal: 30,
-    borderRadius: 99,
+    borderRadius: 5,
     alignItems: 'center',
     marginTop: 10,
     elevation: 5,
   },
   qrContainer: {
     alignItems: 'center',
-    marginVertical: 20,
+    marginVertical: 20, // Added margin to space out the QR code and button
   },
 });

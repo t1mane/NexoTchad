@@ -126,6 +126,11 @@ export default function LoginScreen() {
                 color="#000"
                 fontFamily="oswald"
               />
+              <TouchableOpacity
+                onPress={() => navigation.navigate('ForgotPasswordScreen')} // Make sure to create and navigate to a Forgot Password screen
+              >
+                <Text style={styles.forgotPasswordText}>Mot de passe oublié?</Text>
+              </TouchableOpacity>
               {loading ? (
                 <ActivityIndicator size="large" color="#0000ff" />
               ) : (
@@ -207,6 +212,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     fontFamily: "Oswald",
+  },
+  forgotPasswordText: {
+    color: '#ff5a00',
+    textAlign: 'center',
+    fontWeight: 'bold',
+    marginVertical: 10,
   },
   loadingContainer: {
     flex: 1,

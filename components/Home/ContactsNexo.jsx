@@ -54,37 +54,44 @@ export default function ContactsNexo() {
       Alert.alert('Error', 'User not authenticated');
       return;
     }
-
+  
     if (!name || !lastName || !email) {
       Alert.alert('Error', 'All fields are required');
       return;
     }
-
+  
     const normalizedEmail = email.trim().toLowerCase();
     if (normalizedEmail === currentUser.email.toLowerCase()) {
-      Alert.alert('Error', 'vous ne pouvez pas être votre propre contact');
+      Alert.alert('Error', 'You cannot add yourself as a contact');
       return;
     }
-
+  
+    // Check if contact already exists in the current user's contacts
+    const contactExists = contacts.some(contact => contact.email === normalizedEmail);
+    if (contactExists) {
+      Alert.alert('Error', 'This contact already exists in your contact list');
+      return;
+    }
+  
     try {
       const usersRef = collection(FIRESTORE_DB, 'Users');
       const q = query(usersRef, where('email', '==', normalizedEmail));
       const querySnapshot = await getDocs(q);
-
+  
       if (!querySnapshot.empty) {
         const contactDoc = querySnapshot.docs[0];
         const contactId = contactDoc.id;
-
+  
         const userRef = doc(FIRESTORE_DB, 'Users', currentUser.uid);
         await updateDoc(userRef, {
           contacts: arrayUnion({ contactId, name, lastName, email: normalizedEmail }),
         });
-
+  
         setContacts((prevContacts) => [
           ...prevContacts,
           { contactId, name, lastName, email: normalizedEmail },
         ]);
-
+  
         Alert.alert('Success', 'Contact added successfully!');
         closeModal();
       } else {
@@ -95,6 +102,7 @@ export default function ContactsNexo() {
       Alert.alert('Error', 'Unable to add contact. Please try again later.');
     }
   };
+  
 
   const handleDeleteContact = async () => {
     const currentUser = FIREBASE_AUTH.currentUser;

@@ -259,12 +259,12 @@ const styles = StyleSheet.create({
   },
   container: {
     padding: 20,
-    paddingBottom: 40,
+    paddingBottom: 20,
   },
   divider: {
     borderBottomColor: '#d6d6d6',
     borderBottomWidth: 1,
-    marginVertical: 20,
+    marginVertical: 10,
   },
   centeredModalContainer: {
     flex: 1,
