@@ -1,101 +1,69 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, RefreshControl, Alert, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { getFirestore, collection, query, orderBy, onSnapshot, doc, getDoc } from 'firebase/firestore';
+import { getFirestore, collection, query, where, orderBy, onSnapshot } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
+import { useIsFocused } from '@react-navigation/native';
 
 export default function Notifications() {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [notifiedTransactions, setNotifiedTransactions] = useState(new Set()); // Keep track of notified transaction IDs
-  const [lastLoginTime, setLastLoginTime] = useState(null); // Track the last login time
+  const [alertedNotifications, setAlertedNotifications] = useState(new Set()); // Track which notifications have been alerted
   const auth = getAuth();
   const db = getFirestore();
   const currentUser = auth.currentUser;
-
-  // Get the user's last login time
-  useEffect(() => {
-    const fetchLastLoginTime = async () => {
-      const currentTime = new Date();
-      setLastLoginTime(currentTime);
-    };
-
-    fetchLastLoginTime();
-  }, []);
+  const isFocused = useIsFocused(); // Check if the user is on the Notifications tab
 
   useEffect(() => {
-    // Listen to the Transactions collection for any changes
-    const transactionsRef = collection(db, 'Transactions');
-    const transactionsQuery = query(transactionsRef, orderBy('timestamp', 'desc'));
+    if (!currentUser) {
+      setLoading(false);
+      return;
+    }
 
-    const unsubscribeTransactions = onSnapshot(transactionsQuery, async (snapshot) => {
-      const newNotifications = [];
-      for (const docChange of snapshot.docChanges()) {
-        if (docChange.type === 'added') { // Only handle newly added transactions
-          const transaction = docChange.doc.data();
-          const { senderId, receiverId, amount, timestamp } = transaction;
-          const transactionId = docChange.doc.id;
+    const notificationsRef = collection(db, 'Notifications');
+    const notificationsQuery = query(
+      notificationsRef,
+      where('userId', '==', currentUser.uid),
+      orderBy('timestamp', 'desc') // Newest notifications first
+    );
 
-          // Check if the current user is either the sender or the receiver
-          if ((currentUser.uid === senderId || currentUser.uid === receiverId) && !notifiedTransactions.has(transactionId)) {
-            let message = '';
-            
-            // Check if it's a top-up (senderId === receiverId)
-            if (senderId === receiverId && senderId === currentUser.uid) {
-              message = `Vous avez rechargé votre compte de ${amount} crédits.`;
-            } else if (currentUser.uid === senderId) {
-              const receiverEmail = await getUserEmail(receiverId);
-              message = `Vous avez envoyé ${amount} crédits à ${receiverEmail}.`;
-            } else if (currentUser.uid === receiverId) {
-              const senderEmail = await getUserEmail(senderId);
-              message = `Vous avez reçu ${amount} crédits de ${senderEmail}.`;
-            }
+    const unsubscribe = onSnapshot(notificationsQuery, (snapshot) => {
+      const newNotifications = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
 
-            // Trigger alert only if the new notification is created after the last login time
-            if (lastLoginTime && timestamp.toDate() > lastLoginTime) {
-              Alert.alert('Nouvelle Notification', message);
-            }
+      setNotifications(newNotifications);
 
-            // Add the notification to the local state
-            newNotifications.push({
-              id: transactionId,
-              message,
-              timestamp
-            });
-
-            // Add the transactionId to the notified set to prevent duplicate notifications
-            setNotifiedTransactions((prevNotified) => new Set(prevNotified).add(transactionId));
+      // Check for new notifications and show alerts only for unalerted ones
+      newNotifications.forEach((notification) => {
+        if (!alertedNotifications.has(notification.id)) {
+          if (!isFocused) {
+            Alert.alert('Nouvelle Notification', notification.message);
           }
+          setAlertedNotifications((prev) => new Set(prev).add(notification.id)); // Mark this notification as alerted
         }
-      }
+      });
 
-      // Update the state with new notifications
-      setNotifications((prevNotifications) => [...prevNotifications, ...newNotifications]);
-
-      // Stop the loading spinner
       setLoading(false);
     });
 
-    return () => unsubscribeTransactions(); // Clean up listener on unmount
-  }, [db, currentUser.uid, lastLoginTime, notifiedTransactions]);
-
-  // Fetch user email by userId from 'Users' collection
-  const getUserEmail = async (userId) => {
-    const userDoc = await getDoc(doc(db, 'Users', userId));
-    return userDoc.exists() ? userDoc.data().email : 'Email Inconnu';
-  };
+    return () => unsubscribe(); // Clean up listener on component unmount
+  }, [currentUser, isFocused, alertedNotifications]);
 
   const onRefresh = () => {
     setRefreshing(true);
-    setTimeout(() => setRefreshing(false), 1000); // Simulate refresh delay
+    setNotifications([]); // Clear current notifications
+    setAlertedNotifications(new Set()); // Reset alerted notifications
+    setRefreshing(false);
   };
 
   const renderItem = ({ item }) => (
     <View style={styles.notificationCard}>
       <Text style={styles.notificationText}>{item.message}</Text>
       <Text style={styles.dateText}>
-        {new Date(item.timestamp?.seconds * 1000).toLocaleDateString()}
+        {new Date(item.timestamp?.seconds * 1000).toLocaleString()}
       </Text>
     </View>
   );
@@ -110,14 +78,19 @@ export default function Notifications() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <Text style={styles.title}>Notifications</Text>
-      <FlatList
-        data={notifications}
-        keyExtractor={(item) => item.id}
-        renderItem={renderItem}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-        ListEmptyComponent={<Text style={styles.emptyText}>Aucune Notification</Text>}
-      />
+      {notifications.length > 0 ? (
+        <>
+          <Text style={styles.title}>Notifications</Text>
+          <FlatList
+            data={notifications}
+            keyExtractor={(item) => item.id}
+            renderItem={renderItem}
+            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+          />
+        </>
+      ) : (
+        <Text style={styles.emptyText}>Vous êtes à jour!</Text>
+      )}
     </SafeAreaView>
   );
 }
@@ -134,7 +107,7 @@ const styles = StyleSheet.create({
     marginVertical: 20,
     textAlign: 'center',
     color: '#ff5a00',
-    fontFamily:'oswald'
+    fontFamily: 'oswald',
   },
   notificationCard: {
     backgroundColor: '#fff',
@@ -154,12 +127,12 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#333',
     marginBottom: 5,
-    fontFamily:'oswald'
+    fontFamily: 'oswald',
   },
   dateText: {
     fontSize: 12,
     color: '#888',
-    fontFamily:'oswald'
+    fontFamily: 'oswald',
   },
   emptyText: {
     textAlign: 'center',

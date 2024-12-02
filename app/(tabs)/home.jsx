@@ -32,6 +32,22 @@ export default function HomeScreen() {
     name: '',
     profession: ''
   });
+  const [isEmailVerified, setIsEmailVerified] = useState(true); // Default to true to avoid initial blur flash
+
+// Check if the user's email is verified
+useEffect(() => {
+  const checkEmailVerification = async () => {
+    const user = FIREBASE_AUTH.currentUser;
+
+    if (user) {
+      await user.reload(); // Refresh user state to get the latest verification status
+      setIsEmailVerified(user.emailVerified);
+    }
+  };
+
+  checkEmailVerification();
+}, []);
+
 
   // Fetch balance for the user
   const fetchBalance = async () => {
@@ -112,13 +128,54 @@ export default function HomeScreen() {
 
   // Handle account type selection
   const handleAccountTypeSelection = async (type) => {
-    const user = FIREBASE_AUTH.currentUser;
-    if (user) {
-      const userDocRef = doc(FIRESTORE_DB, 'Users', user.uid);
-      await setDoc(userDocRef, { accountType: type }, { merge: true });
-      setAccountTypeModalVisible(false);
+    let accountDetails;
+  
+    // Set account details based on the selected type
+    switch (type) {
+      case 'personel':
+        accountDetails = {
+          title: 'Compte Personel',
+          description: '0 F PAR MOIS\n⚬ Montant illimité de transactions\n⚬ 3% de frais de retrait\n⚬ Limite de retrait de 100,000 F par mois',
+        };
+        break;
+      case 'business':
+        accountDetails = {
+          title: 'Compte Business',
+          description: '25,000 F PAR MOIS\n⚬ Montant illimité de transactions\n⚬ Frais de retrait : 0%\n⚬ retraits illimités mensuellement\n⚬ Dépôts bancaires gratuits',
+        };
+        break;
+      case 'privilege':
+        accountDetails = {
+          title: 'Compte Privilege',
+          description: '5,000 F PAR MOIS\n⚬ Montant illimité de transactions\n⚬ Frais de retrait : 0%\n⚬ Limite de retrait de 500,000 F par mois\n⚬ Service client prioritaire',
+        };
+        break;
+      default:
+        return;
     }
+  
+    // Show confirmation alert
+    Alert.alert(
+      `Confirmer ${accountDetails.title}`,
+      accountDetails.description,
+      [
+        { text: 'Annuler', style: 'cancel' },
+        {
+          text: 'Confirmer',
+          onPress: async () => {
+            const user = FIREBASE_AUTH.currentUser;
+            if (user) {
+              const userDocRef = doc(FIRESTORE_DB, 'Users', user.uid);
+              await setDoc(userDocRef, { accountType: type }, { merge: true });
+              setAccountTypeModalVisible(false); // Close the modal
+            }
+          },
+        },
+      ],
+      { cancelable: true }
+    );
   };
+  
 
   // Check if the navigation parameters include email and openTransferModal flag
   useEffect(() => {
@@ -145,77 +202,128 @@ export default function HomeScreen() {
         <View style={styles.divider} />
         <Topup />
       </ScrollView>
-
+  
       {/* Unskippable User Information Modal */}
       <Modal visible={userInfoModalVisible} transparent={true} animationType="fade">
-  <BlurView intensity={100} style={StyleSheet.absoluteFill}>
-    <View style={styles.centeredModalContainer}>
-      <View style={styles.modalContent}>
-        <Text style={styles.modalTitle}>Informations Personnelles</Text>
-
-        <TextInput
-          style={styles.input}
-          placeholder="Nom"
-          value={userInfo.name}
-          onChangeText={(text) => setUserInfo({ ...userInfo, name: text })}
-          placeholderTextColor="#777" // Full black placeholder text
-        />
-        <TextInput
-          style={styles.input}
-          placeholder="Prénom"
-          value={userInfo.lastName}
-          onChangeText={(text) => setUserInfo({ ...userInfo, lastName: text })}
-          placeholderTextColor="#777" // Full black placeholder text
-        />
-        <TextInput
-          style={styles.input}
-          placeholder="Âge"
-          keyboardType="numeric"
-          value={userInfo.age}
-          onChangeText={(text) => setUserInfo({ ...userInfo, age: text })}
-          placeholderTextColor="#777" // Full black placeholder text
-        />
-        <TextInput
-          style={styles.input}
-          placeholder="Sexe"
-          value={userInfo.sexe}
-          onChangeText={(text) => setUserInfo({ ...userInfo, sexe: text })}
-          placeholderTextColor="#777" // Full black placeholder text
-        />
-        <TextInput
-          style={styles.input}
-          placeholder="Profession"
-          value={userInfo.profession}
-          onChangeText={(text) => setUserInfo({ ...userInfo, profession: text })}
-          placeholderTextColor="#777" // Full black placeholder text
-        />
-
-        <TouchableOpacity style={styles.button} onPress={handleUserInfoSubmit}>
-          <Text style={styles.buttonText}>Soumettre</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
-  </BlurView>
-</Modal>
-
-      {/* Unskippable Account Type Modal */}
-      <Modal visible={accountTypeModalVisible} transparent={true} animationType="fade">
         <BlurView intensity={100} style={StyleSheet.absoluteFill}>
           <View style={styles.centeredModalContainer}>
             <View style={styles.modalContent}>
-              <Text style={styles.modalTitle}>Type de Compte</Text>
-
-              <TouchableOpacity style={[styles.buttonLarge, { backgroundColor: '#007BFF' }]} onPress={() => handleAccountTypeSelection('business')}>
-                <Text style={styles.buttonText}>Professionnel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.buttonLarge} onPress={() => handleAccountTypeSelection('personal')}>
-                <Text style={styles.buttonText}>Personnel</Text>
+              <Text style={styles.modalTitle}>Informations Personnelles</Text>
+  
+              <TextInput
+                style={styles.input}
+                placeholder="Nom"
+                value={userInfo.name}
+                onChangeText={(text) => setUserInfo({ ...userInfo, name: text })}
+                placeholderTextColor="#777" // Full black placeholder text
+              />
+              <TextInput
+                style={styles.input}
+                placeholder="Prénom"
+                value={userInfo.lastName}
+                onChangeText={(text) => setUserInfo({ ...userInfo, lastName: text })}
+                placeholderTextColor="#777" // Full black placeholder text
+              />
+              <TextInput
+                style={styles.input}
+                placeholder="Âge"
+                keyboardType="numeric"
+                value={userInfo.age}
+                onChangeText={(text) => setUserInfo({ ...userInfo, age: text })}
+                placeholderTextColor="#777" // Full black placeholder text
+              />
+              <TextInput
+                style={styles.input}
+                placeholder="Sexe"
+                value={userInfo.sexe}
+                onChangeText={(text) => setUserInfo({ ...userInfo, sexe: text })}
+                placeholderTextColor="#777" // Full black placeholder text
+              />
+              <TextInput
+                style={styles.input}
+                placeholder="Profession"
+                value={userInfo.profession}
+                onChangeText={(text) => setUserInfo({ ...userInfo, profession: text })}
+                placeholderTextColor="#777" // Full black placeholder text
+              />
+  
+              <TouchableOpacity style={styles.button} onPress={handleUserInfoSubmit}>
+                <Text style={styles.buttonText}>Soumettre</Text>
               </TouchableOpacity>
             </View>
           </View>
         </BlurView>
       </Modal>
+  
+      {/* Unskippable Account Type Modal */}
+      {/* Updated Account Type Modal */}
+<Modal visible={accountTypeModalVisible} transparent={true} animationType="fade">
+  <BlurView intensity={100} style={StyleSheet.absoluteFill}>
+    <View style={styles.centeredModalContainer}>
+      <ScrollView
+      contentContainerStyle={styles.modalScrollContainer} 
+      showsVerticalScrollIndicator={false}
+      >
+      <View style={styles.modalContent}>
+        <Text style={styles.modalTitle}>Sélectionnez votre type de compte</Text>
 
+        {/* Account Type: Personel */}
+        <View style={styles.accountCard}>
+          <Text style={styles.accountTitle}>Personel</Text>
+          <Text style={styles.accountPrice}>0 F PAR MOIS</Text>
+          <Text style={styles.accountFeature}>⚬ Montant illimité de transactions</Text>
+          <Text style={styles.accountFeature}>⚬ 2% de frais par transaction</Text>
+          <Text style={styles.accountFeature}>⚬ Frais de 3% par retrait</Text>
+          <Text style={styles.accountFeature}>⚬ Limite de retrait de 100,000 F par mois</Text>
+          <TouchableOpacity
+            style={styles.selectButton}
+            onPress={() => handleAccountTypeSelection('personel')}
+          >
+            <Text style={styles.selectButtonText}>Sélectionner</Text>
+          </TouchableOpacity>
+
+        </View>
+
+        {/* Account Type: Business */}
+        <View style={styles.accountCard}>
+          <Text style={styles.accountTitle}>Business</Text>
+          <Text style={styles.accountPrice}>25,000 F PAR MOIS</Text>
+          <Text style={styles.accountFeature}>⚬ Montant illimité de transactions</Text>
+          <Text style={styles.accountFeature}>⚬ 0% de frais par transaction</Text>
+          <Text style={styles.accountFeature}>⚬ Frais de retrait : 0%</Text>
+          <Text style={styles.accountFeature}>⚬ montants de retraits gratuits et illimités</Text>
+          <Text style={styles.accountFeature}>⚬ Dépôts bancaires gratuits</Text>
+          <TouchableOpacity
+            style={styles.selectButton}
+            onPress={() => handleAccountTypeSelection('business')}
+          >
+            <Text style={styles.selectButtonText}>Sélectionner</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Account Type: Privilege */}
+        <View style={styles.accountCard}>
+          <Text style={styles.accountTitle}>Privilege</Text>
+          <Text style={styles.accountPrice}>5,000 F PAR MOIS</Text>
+          <Text style={styles.accountFeature}>⚬ Montant illimité de transactions</Text>
+          <Text style={styles.accountFeature}>⚬ Frais de retrait : 0%</Text>
+          <Text style={styles.accountFeature}>⚬ Limite de retrait de 500,000 F par mois</Text>
+          <Text style={styles.accountFeature}>⚬ Service client prioritaire</Text>
+          <Text style={styles.accountFeature}>⚬ frais de 1% pour Dépôts bancaires</Text>
+          <TouchableOpacity
+            style={styles.selectButton}
+            onPress={() => handleAccountTypeSelection('privilege')}
+          >
+            <Text style={styles.selectButtonText}>Sélectionner</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+      </ScrollView>
+    </View>
+  </BlurView>
+</Modal>
+
+  
       {/* Blur Background and Transfer Modal */}
       {transferModalVisible && (
         <BlurView intensity={80} tint="dark" style={StyleSheet.absoluteFill}>
@@ -229,7 +337,7 @@ export default function HomeScreen() {
               <View style={styles.modalContent}>
                 <Transferfunds
                   visible={transferModalVisible}
-                  email={transferEmail}  // Prefill email from QR code
+                  email={transferEmail} // Prefill email from QR code
                   onClose={() => setTransferModalVisible(false)}
                   onTransferSuccess={() => {
                     setTransferModalVisible(false);
@@ -246,11 +354,23 @@ export default function HomeScreen() {
           </Modal>
         </BlurView>
       )}
-
+  
+      {/* Blur and Overlay for Unverified Email */}
+      {!isEmailVerified && (
+        <BlurView intensity={100} style={StyleSheet.absoluteFill} tint="dark">
+          <View style={styles.overlayContainer}>
+            <Text style={styles.overlayText}>
+              Vous devez confirmer votre email avant de pouvoir accéder à cet onglet.
+            </Text>
+          </View>
+        </BlurView>
+      )}
+  
       <StatusBar style="dark" translucent={true} />
     </SafeAreaView>
   );
 }
+  
 
 const styles = StyleSheet.create({
   safeArea: {
@@ -330,4 +450,90 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontFamily: 'oswald-bold',
   },
+  overlayContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+  },
+  overlayText: {
+    fontSize: 18,
+    color: '#fff',
+    textAlign: 'center',
+    fontWeight: 'bold',
+    fontFamily: 'oswald',
+  },
+  accountCard: {
+    width: '100%',
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    padding: 15,
+    marginVertical: 10,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  accountTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#ff5a00',
+    marginBottom: 10,
+    fontFamily: 'oswald',
+  },
+  accountPrice: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#000',
+    marginBottom: 10,
+    fontFamily: 'oswald-bold',
+  },
+  accountFeature: {
+    fontSize: 14,
+    color: '#333',
+    marginBottom: 5,
+    textAlign: 'center',
+    fontFamily: 'oswald',
+  },
+  selectButton: {
+    backgroundColor: '#ff5a00',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 5,
+    marginTop: 15,
+  },
+  selectButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+    fontFamily: 'oswald',
+  },
+  modalScrollContainer: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 20,
+  },
+  modalContent: {
+    width: '100%',
+    maxWidth: 350,
+    backgroundColor: 'white',
+    paddingVertical: 20,
+    paddingHorizontal: 15,
+    borderRadius: 10,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 4.84,
+    elevation: 5,
+    alignItems: 'center',
+  },
+  
+  
+  
 });

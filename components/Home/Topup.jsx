@@ -16,35 +16,35 @@ export default function Topup({ navigation }) {
       Alert.alert('Erreur', 'Veuillez entrer un code de recharge');
       return;
     }
-
+  
     setLoading(true); // Start loading
     try {
       // Correct the collection name to match Firestore case-sensitive collection: Scratch_cards
       const q = query(collection(db, 'Scratch_cards'), where('code', '==', scratchCode));
       const querySnapshot = await getDocs(q);
-
+  
       if (querySnapshot.empty) {
         Alert.alert('Erreur', 'Code de recharge invalide');
       } else {
         // If the code exists, process the first document (since codes are unique)
         const docSnap = querySnapshot.docs[0];
         const scratchCardData = docSnap.data();
-
+  
         if (scratchCardData.used) {
           Alert.alert('Erreur', 'Ce code de recharge a déjà été utilisé.');
         } else {
           const user = auth.currentUser;
           const userRef = doc(db, 'Users', user.uid); // Make sure 'Users' is case-sensitive
           const userSnap = await getDoc(userRef);
-
+  
           if (userSnap.exists()) {
             const userData = userSnap.data();
             const newBalance = (userData.balance || 0) + scratchCardData.amount;
-
+  
             // Update user's balance and mark the scratch card as used
             await updateDoc(userRef, { balance: newBalance });
             await updateDoc(docSnap.ref, { used: true }); // Update the document to mark it as used
-
+  
             // Record the top-up as a transaction in the 'Transactions' collection
             await addDoc(collection(db, 'Transactions'), {
               amount: scratchCardData.amount,
@@ -53,7 +53,17 @@ export default function Topup({ navigation }) {
               status: 'completed',
               timestamp: Timestamp.now(),  // Current timestamp
             });
-
+  
+            // Add a notification for the user
+            await addDoc(collection(db, 'Notifications'), {
+              userId: user.uid,
+              type: 'top_up',
+              message: `Vous avez rechargé votre compte avec ${scratchCardData.amount} crédits.`,
+              timestamp: new Date(),
+              read: false,
+              adminBroadcast: false, // Ensure adminBroadcast is false
+            });
+  
             Alert.alert('Succès', `Votre compte a été rechargé de ${scratchCardData.amount} unités!`);
             setModalVisible(false); // Close the modal after successful top-up
           } else {
@@ -67,6 +77,7 @@ export default function Topup({ navigation }) {
     }
     setLoading(false); // Stop loading
   };
+  
 
   return (
     <View style={styles.outerContainer}>

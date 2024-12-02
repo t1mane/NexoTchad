@@ -1,9 +1,25 @@
 import { useNavigation } from '@react-navigation/native';
-import { SafeAreaView, View, Text, Image, StyleSheet, TextInput, ActivityIndicator, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
-import React, { useState } from 'react';
+import {
+  SafeAreaView,
+  View,
+  Text,
+  Image,
+  StyleSheet,
+  TextInput,
+  ActivityIndicator,
+  TouchableOpacity,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  Alert,
+} from 'react-native';
+import React, { useState, useEffect } from 'react';
 import { FIREBASE_AUTH } from './../config/FirebaseConfig';
-import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { createUserDocument } from '../config/firebaseService'; // Make sure this function is correctly imported
+import {
+  createUserWithEmailAndPassword,
+  sendEmailVerification,
+} from 'firebase/auth';
+import { createUserDocument } from '../config/firebaseService';
 
 export default function CreateAccountScreen() {
   const [email, setEmail] = useState('');
@@ -14,19 +30,44 @@ export default function CreateAccountScreen() {
 
   const signUp = async () => {
     if (password !== confirmPassword) {
-      alert("Les mots de passe ne correspondent pas.");
+      Alert.alert('Erreur', 'Les mots de passe ne correspondent pas.');
       return;
     }
+
     setLoading(true);
+
     try {
+      // Create the user account
       const response = await createUserWithEmailAndPassword(FIREBASE_AUTH, email, password);
-      // Ensure user data is stored
-      await createUserDocument(response.user);
-      alert('Compte créé avec succès ! Veuillez vérifier votre email.');
-      navigation.navigate('LoginScreen'); // Navigate back to login after signup
+
+      // Save user data in Firestore
+      try {
+        await createUserDocument(response.user);
+      } catch (error) {
+        console.error('Error creating user document:', error);
+        Alert.alert('Erreur', 'Un problème est survenu lors de la création de votre compte.');
+      }
+
+      // Send email verification
+      try {
+        await sendEmailVerification(response.user);
+        Alert.alert(
+          'Succès',
+          'Compte créé avec succès ! Veuillez vérifier votre email. Connectez-vous après avoir vérifié votre email.'
+        );
+
+        // Redirect to login screen
+        navigation.reset({
+          index: 0,
+          routes: [{ name: 'LoginScreen' }], // Replace with your login screen's name
+        });
+      } catch (error) {
+        console.error('Error sending email verification:', error);
+        Alert.alert('Erreur', 'Impossible d’envoyer l’email de vérification.');
+      }
     } catch (error) {
-      console.error(error);
-      alert('Échec de l\'inscription : ' + error.message);
+      console.error('Signup error:', error);
+      Alert.alert('Erreur', `Échec de l'inscription : ${error.message}`);
     } finally {
       setLoading(false);
     }
@@ -48,9 +89,7 @@ export default function CreateAccountScreen() {
               style={styles.logo}
               resizeMode="contain"
             />
-            <Text style={styles.subtitle}>
-              Créez votre compte pour commencer
-            </Text>
+            <Text style={styles.subtitle}>Créez votre compte pour commencer</Text>
             <View style={styles.loginContainer}>
               <TextInput
                 value={email}
@@ -112,7 +151,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'flex-start',
     alignItems: 'center',
-    backgroundColor: "#ff5a00",
+    backgroundColor: '#ff5a00',
   },
   middleContent: {
     flex: 1,
@@ -131,7 +170,7 @@ const styles = StyleSheet.create({
     fontFamily: 'oswald-Bold',
     textAlign: 'center',
     marginTop: -40,
-    fontWeight: "bold",
+    fontWeight: 'bold',
   },
   loginContainer: {
     width: '90%',
@@ -154,16 +193,15 @@ const styles = StyleSheet.create({
   button: {
     backgroundColor: '#ff5a00',
     paddingVertical: 15,
-    paddingHorizontal: 20,
     borderRadius: 5,
-    marginVertical: 10,
     alignItems: 'center',
     width: '100%',
+    marginVertical: 10,
   },
   buttonText: {
     color: '#ffffff',
     fontSize: 16,
     fontWeight: 'bold',
-    fontFamily: "Oswald",
+    fontFamily: 'Oswald',
   },
 });

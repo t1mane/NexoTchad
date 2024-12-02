@@ -7,12 +7,14 @@ import QRCode from 'react-native-qrcode-svg';
 import * as FileSystem from 'expo-file-system';
 import * as MediaLibrary from 'expo-media-library';
 import { collection, query, where, getDocs } from 'firebase/firestore';
+import { BlurView } from 'expo-blur'; // Import BlurView for the blur effect
 
 export default function Scan() {
   const [hasPermission, setHasPermission] = useState(null);
   const [scanned, setScanned] = useState(false);
   const [showCamera, setShowCamera] = useState(false);
   const [qrCodeValue, setQrCodeValue] = useState(null);
+  const [isEmailVerified, setIsEmailVerified] = useState(true); // Track email verification status
   const svgRef = useRef(null);
   const navigation = useNavigation();
 
@@ -22,6 +24,18 @@ export default function Scan() {
       setHasPermission(status === 'granted');
       await MediaLibrary.requestPermissionsAsync();
     })();
+
+    // Check email verification status
+    const checkEmailVerification = async () => {
+      const user = FIREBASE_AUTH.currentUser;
+
+      if (user) {
+        await user.reload(); // Refresh user state
+        setIsEmailVerified(user.emailVerified); // Update email verification status
+      }
+    };
+
+    checkEmailVerification();
   }, []);
 
   const handleBarCodeScanned = async ({ type, data }) => {
@@ -143,6 +157,17 @@ export default function Scan() {
       {scanned && (
         <Button title="Appuyez pour scanner à nouveau" onPress={() => setScanned(false)} />
       )}
+
+      {/* Blur and Overlay for Unverified Email */}
+      {!isEmailVerified && (
+        <BlurView intensity={100} style={StyleSheet.absoluteFill} tint="dark">
+          <View style={styles.overlayContainer}>
+            <Text style={styles.overlayText}>
+              Vous devez confirmer votre email avant de pouvoir accéder à cette section.
+            </Text>
+          </View>
+        </BlurView>
+      )}
     </View>
   );
 }
@@ -186,7 +211,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 30,
     borderRadius: 5,
     alignItems: 'center',
-    marginBottom: 30, // Added more space between the button and the QR code
+    marginBottom: 30,
     elevation: 5,
   },
   downloadButton: {
@@ -209,6 +234,19 @@ const styles = StyleSheet.create({
   },
   qrContainer: {
     alignItems: 'center',
-    marginVertical: 20, // Added margin to space out the QR code and button
+    marginVertical: 20,
+  },
+  overlayContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+  },
+  overlayText: {
+    fontSize: 18,
+    color: '#fff',
+    textAlign: 'center',
+    fontWeight: 'bold',
+    fontFamily: 'oswald',
   },
 });

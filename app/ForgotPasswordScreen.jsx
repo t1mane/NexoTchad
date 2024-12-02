@@ -117,6 +117,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: -40,
     fontWeight: 'bold',
+    fontFamily:'oswald'
   },
   formContainer: {
     width: '90%',
@@ -132,6 +133,7 @@ const styles = StyleSheet.create({
     color: '#888',
     textAlign: 'center',
     marginBottom: 20,
+    fontFamily:'oswald'
   },
   input: {
     width: '100%',
@@ -154,11 +156,13 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontSize: 16,
     fontWeight: 'bold',
+    fontFamily:'oswald'
   },
   backText: {
     color: '#ff5a00',
     textAlign: 'center',
     fontWeight: 'bold',
     marginTop: 10,
+    fontFamily:'oswald'
   },
 });

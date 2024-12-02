@@ -54,7 +54,6 @@ export default function Transferfunds({ visible, onClose, email: initialEmail, o
       return;
     }
   
-    // Show confirmation alert before proceeding
     Alert.alert(
       'Confirmez votre transfert',
       `Êtes-vous sûr de vouloir transférer ${amountNum} à ${email} ?`,
@@ -66,9 +65,8 @@ export default function Transferfunds({ visible, onClose, email: initialEmail, o
         {
           text: 'Confirmer',
           onPress: async () => {
+            setLoading(true);
             try {
-              setLoading(true); // Disable the button by setting loading to true
-  
               // Queries to find sender and receiver in Firestore
               const senderQuery = query(collection(FIRESTORE_DB, 'Users'), where('email', '==', lowerSenderEmail));
               const receiverQuery = query(collection(FIRESTORE_DB, 'Users'), where('email', '==', lowerReceiverEmail));
@@ -92,7 +90,7 @@ export default function Transferfunds({ visible, onClose, email: initialEmail, o
                 return;
               }
   
-              // Execute the transaction to update sender and receiver balances
+              // Execute the transaction
               await runTransaction(FIRESTORE_DB, async (transaction) => {
                 const newSenderBalance = senderData.balance - amountNum;
                 const newReceiverBalance = receiverData.balance + amountNum;
@@ -102,7 +100,7 @@ export default function Transferfunds({ visible, onClose, email: initialEmail, o
               });
   
               // Record the transaction in Firestore
-              await addDoc(collection(FIRESTORE_DB, 'Transactions'), {
+              const transactionRef = await addDoc(collection(FIRESTORE_DB, 'Transactions'), {
                 amount: amountNum,
                 senderId: senderDoc.id,
                 receiverId: receiverDoc.id,
@@ -110,28 +108,54 @@ export default function Transferfunds({ visible, onClose, email: initialEmail, o
                 timestamp: new Date(),
               });
   
+              // Notification logic
+              try {
+                await addDoc(collection(FIRESTORE_DB, 'Notifications'), {
+                  userId: senderDoc.id,
+                  type: 'transfer_sent',
+                  message: `Vous avez envoyé ${amountNum} crédits à ${email}.`,
+                  timestamp: new Date(),
+                  read: false,
+                  adminBroadcast: false,
+                });
+              } catch (senderNotificationError) {
+                console.error('Erreur lors de la notification de l\'envoyeur :', senderNotificationError);
+              }
+  
+              try {
+                await addDoc(collection(FIRESTORE_DB, 'Notifications'), {
+                  userId: receiverDoc.id,
+                  type: 'transfer_received',
+                  message: `Vous avez reçu ${amountNum} crédits de ${senderEmail}.`,
+                  timestamp: new Date(),
+                  read: false,
+                  adminBroadcast: false,
+                });
+              } catch (receiverNotificationError) {
+                console.error('Erreur lors de la notification du receveur :', receiverNotificationError);
+              }
+  
               Alert.alert('Succès', 'Fonds transférés avec succès.');
   
               // Reset inputs after successful transfer
               setAmount('');
               setEmail('');
   
-              // Trigger the onTransferSuccess prop function (e.g., close modal and reset stack in HomeScreen)
-              if (typeof onTransferSuccess === 'function') {
-                onTransferSuccess(); // Safeguard in case onTransferSuccess is not passed
-              }
-  
+              // Trigger the onTransferSuccess callback
+              onTransferSuccess();
             } catch (error) {
-              console.error('Transaction échouée : ', error);
+              console.error('Erreur lors du transfert :', error);
               Alert.alert('Erreur', 'Un problème est survenu lors du transfert de fonds.');
             } finally {
-              setLoading(false); // Re-enable the button after the transfer is complete
+              setLoading(false);
             }
           },
         },
       ]
     );
   };
+  
+  
   
 
   return (

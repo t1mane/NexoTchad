@@ -114,13 +114,21 @@ export default function Profile() {
 
             {/* Account Type Display */}
             {accountType && (
-              <View style={styles.accountTypeContainer}>
-                <Text style={styles.accountTypeLabel}>Type de compte:</Text>
-                <Text style={styles.accountTypeValue}>
-                  {accountType === 'personal' ? 'Compte Personnel' : 'Compte Professionnel'}
-                </Text>
-              </View>
-            )}
+  <View style={styles.accountTypeContainer}>
+    <Text style={styles.accountTypeLabel}>Type de compte:</Text>
+    <Text style={styles.accountTypeValue}>
+      {accountType === 'personel'
+        ? 'Compte Personnel'
+        : accountType === 'business'
+        ? 'Compte Business'
+        : accountType === 'privilege'
+        ? 'Compte Privilege'
+        : 'Type de compte inconnu'}
+    </Text>
+  </View>
+)}
+
+          
           </View>
         ) : (
           <Text style={styles.loadingText}>Chargement des informations...</Text>

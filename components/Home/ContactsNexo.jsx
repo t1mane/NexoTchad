@@ -172,18 +172,47 @@ export default function ContactsNexo() {
         return;
       }
   
+      // Perform transaction
       await runTransaction(FIRESTORE_DB, async (transaction) => {
         transaction.update(senderDoc.ref, { balance: senderData.balance - amountNum });
         transaction.update(receiverDoc.ref, { balance: receiverDoc.data().balance + amountNum });
       });
   
-      await addDoc(collection(FIRESTORE_DB, 'Transactions'), {
+      // Record the transaction in Firestore
+      const transactionRef = await addDoc(collection(FIRESTORE_DB, 'Transactions'), {
         amount: amountNum,
         senderId: senderDoc.id,
         receiverId: receiverDoc.id,
         status: 'completed',
         timestamp: new Date(),
       });
+  
+      // Create notifications
+      try {
+        await Promise.all([
+          // Notification for the sender
+          addDoc(collection(FIRESTORE_DB, 'Notifications'), {
+            userId: senderDoc.id,
+            type: 'transfer_sent',
+            message: `Vous avez envoyé ${amountNum} crédits à ${selectedContact.email}.`,
+            timestamp: new Date(),
+            read: false,
+            adminBroadcast: false, // Ensure adminBroadcast is false
+          }),
+          // Notification for the receiver
+          addDoc(collection(FIRESTORE_DB, 'Notifications'), {
+            userId: receiverDoc.id,
+            type: 'transfer_received',
+            message: `Vous avez reçu ${amountNum} crédits de ${senderEmail}.`,
+            timestamp: new Date(),
+            read: false,
+            adminBroadcast: false, // Ensure adminBroadcast is false
+          }),
+        ]);
+      } catch (notificationError) {
+        console.error('Notification creation failed: ', notificationError);
+        // Notifications are non-critical, so the transaction continues even if they fail
+      }
   
       Alert.alert('Success', 'Funds transferred successfully');
       setTransferModalVisible(false);
@@ -195,6 +224,7 @@ export default function ContactsNexo() {
       setLoading(false); // Re-enable the button after processing
     }
   };
+  
   
   const closeModal = () => {
     setModalVisible(false);
